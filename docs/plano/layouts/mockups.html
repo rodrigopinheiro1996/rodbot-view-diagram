@@ -1,0 +1,145 @@
+<!doctype html>
+<html lang="pt-BR"><head><meta charset="utf-8">
+<style>
+:root{--bg:#0b0f12;--win:#11161a;--card:#171d22;--card2:#1c242a;--bd:#29323a;--tx:#e8eef3;--sub:#8d9aa6;--ac:#8ef04a;--acd:#2c4a17;--red:#f26060;--redd:#3b1717;--amb:#f5b041;--blue:#2f7cf6}
+*{box-sizing:border-box}body{margin:0;background:#06080a;font:14px/1.35 "Segoe UI",system-ui,sans-serif;color:var(--tx);padding:24px;display:flex;gap:28px;flex-wrap:wrap;align-items:flex-start}
+.shot{display:flex;flex-direction:column;gap:10px}
+.cap{font-weight:700;font-size:17px;color:#fff}.cap small{display:block;font-weight:400;color:var(--sub);font-size:13px;margin-top:2px;max-width:470px}
+.panel{width:470px;background:var(--win);border:1px solid var(--bd);border-radius:16px;overflow:hidden;box-shadow:0 10px 40px #000a;position:relative}
+.hdr{display:flex;align-items:center;gap:10px;padding:12px 14px;background:#0d1114;border-bottom:1px solid var(--bd)}
+.logo{width:30px;height:30px;border-radius:8px;background:#1f2a1a;display:grid;place-items:center}
+.ttl{font-weight:800;font-size:17px;flex:1}.pill{font-size:12px;font-weight:700;padding:4px 10px;border-radius:999px;background:#2a3540;color:#dfe7ee}
+.pill.ac{background:var(--acd);color:var(--ac);border:1px solid #4d7a2b}.x{width:28px;height:28px;border-radius:8px;border:1px solid #6b2b2b;background:#2a1212;color:#f29a9a;display:grid;place-items:center}
+.body{padding:12px;display:flex;flex-direction:column;gap:10px}
+.card{background:var(--card);border:1px solid var(--bd);border-radius:12px;padding:10px 12px}
+.lbl{font-weight:700;font-size:13px}.sub{color:var(--sub);font-size:12px}
+.row{display:flex;align-items:center;gap:8px}.sp{flex:1}
+.seg{display:flex;background:#0d1114;border:1px solid var(--bd);border-radius:10px;padding:3px;gap:3px}
+.seg b{flex:1;text-align:center;font-size:12.5px;padding:7px 4px;border-radius:8px;color:var(--sub);font-weight:600}
+.seg b.on{background:var(--acd);color:var(--ac);border:1px solid #4d7a2b}
+.sel{background:#0d1114;border:1px solid var(--bd);border-radius:9px;padding:7px 10px;font-size:13px;flex:1;display:flex;justify-content:space-between}
+.ib{width:30px;height:30px;border-radius:8px;background:#0d1114;border:1px solid var(--bd);display:grid;place-items:center;font-size:13px}
+.step{display:flex;gap:10px;align-items:flex-start;background:var(--card2);border:1px solid var(--bd);border-radius:11px;padding:9px 10px}
+.num{width:24px;height:24px;border-radius:50%;background:#0d1114;border:1px solid var(--bd);display:grid;place-items:center;font-size:12px;font-weight:700;flex:none}
+.step .t{font-weight:700;font-size:13.5px}.step .d{font-size:12px;color:var(--sub);margin-top:2px}
+.ctl{display:flex;gap:4px;color:var(--sub);font-size:12px}.ctl span{width:22px;height:22px;border:1px solid var(--bd);border-radius:6px;display:grid;place-items:center;background:#0d1114}
+.badge{font-size:11px;font-weight:700;padding:2px 7px;border-radius:999px;background:#2b2210;color:var(--amb);border:1px solid #5d4517}
+.add{border:1.5px dashed #3a4650;border-radius:11px;padding:9px;text-align:center;color:var(--sub);font-weight:600;font-size:13px}
+.cta{background:var(--ac);color:#0b1a04;font-weight:800;text-align:center;padding:12px;border-radius:12px;font-size:15px}
+.log{background:#080b0d;border:1px solid var(--bd);border-radius:10px;padding:8px 10px;font:12px/1.5 ui-monospace,Consolas,monospace;color:var(--ac)}
+.chip{display:inline-flex;gap:5px;align-items:center;padding:4px 10px;border-radius:999px;border:1px solid var(--bd);background:#0d1114;font-size:12.5px}
+.fld{background:#0d1114;border:1px solid var(--bd);border-radius:9px;padding:8px 10px;font-size:13px;color:var(--sub)}
+.kv{display:flex;justify-content:space-between;font-size:12.5px;padding:3px 0}.kv b{color:var(--tx)}
+.chain{display:flex;align-items:center;gap:4px;flex-wrap:wrap}
+.node{padding:7px 9px;border-radius:10px;background:var(--card2);border:1px solid var(--bd);font-size:12.5px;font-weight:600}
+.node.on{border-color:var(--ac);box-shadow:0 0 0 2px #8ef04a33;color:var(--ac)}
+.arrow{color:#55616b;font-size:13px}
+.pal{display:grid;grid-template-columns:repeat(5,1fr);gap:6px}
+.pal div{background:var(--card2);border:1px solid var(--bd);border-radius:10px;text-align:center;padding:8px 2px;font-size:11.5px;color:var(--sub)}
+.pal div i{display:block;font-style:normal;font-size:19px;margin-bottom:2px}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.big{background:var(--card2);border:1px solid var(--bd);border-radius:12px;padding:12px;position:relative}
+.big .t{font-weight:700}.big .d{font-size:12px;color:var(--sub);margin-top:3px}
+.big.on{border-color:var(--ac);background:#15210f}.big .o{position:absolute;top:8px;right:8px;width:22px;height:22px;border-radius:50%;background:var(--ac);color:#0b1a04;font-weight:800;font-size:12px;display:grid;place-items:center}
+.dots{display:flex;gap:6px;align-items:center;font-size:12px;color:var(--sub)}
+.dots b{padding:4px 9px;border-radius:999px;border:1px solid var(--bd)}.dots b.on{color:var(--ac);border-color:#4d7a2b;background:var(--acd)}.dots b.ok{color:var(--tx)}
+.btn2{flex:1;text-align:center;padding:10px;border-radius:11px;border:1px solid var(--bd);background:#0d1114;font-weight:700}
+.overlay{position:absolute;inset:0;background:#000b;display:grid;place-items:center;padding:20px}
+.modal{background:#151b20;border:1px solid #6b2b2b;border-radius:14px;padding:16px;width:100%;box-shadow:0 20px 50px #000}
+.modal h3{margin:0 0 8px;color:#ff8a8a;font-size:16px}
+.err{border-color:var(--red)!important;background:var(--redd)!important}
+.tabs{display:flex;gap:4px;background:#0d1114;border:1px solid var(--bd);border-radius:12px;padding:4px}
+.tabs b{flex:1;text-align:center;padding:8px 4px;border-radius:9px;font-size:13px;color:var(--sub);font-weight:600}
+.tabs b.on{background:var(--acd);color:var(--ac);border:1px solid #4d7a2b}
+.foot{display:flex;justify-content:space-between;font-size:12px;color:var(--sub)}
+</style></head><body>
+
+<!-- ============ A ============ -->
+<div class="shot" id="A"><div class="cap">A · Lista vertical (sem abas)<small>Tudo numa tela só, de cima para baixo: para quem → passos → ajustes → Iniciar. Parecido com o Piloto de hoje, então quem já usa reconhece na hora.</small></div>
+<div class="panel">
+ <div class="hdr"><div class="logo">🤖</div><div class="ttl">rod bot</div><span class="pill">Parado</span><span class="pill ac">🟢 Tema</span><span class="x">✕</span></div>
+ <div class="body">
+  <div class="row"><div class="sel"><span>⭐ Piloto clássico</span><span>▾</span></div><div class="ib">💾</div><div class="ib">＋</div></div>
+  <div class="card"><div class="lbl" style="margin-bottom:6px">👥 Para quem?</div>
+   <div class="seg"><b class="on">⏳ Aguardando</b><b>🆕 Que vão cair</b><b>👥 Ambos</b></div></div>
+  <div class="step"><div class="num">1</div><div class="sp"><div class="t">📥 Atender fila</div><div class="d">Puxa até zerar · sentinela quando a fila esvaziar</div></div><div class="ctl"><span>▲</span><span>▼</span><span>✕</span></div></div>
+  <div class="step"><div class="num">2</div><div class="sp"><div class="t">✉️ Enviar · Só enviar</div><div class="d">“Realizamos uma nova atualização no seu aplicativo…”</div></div><div class="ctl"><span>▲</span><span>▼</span><span>✕</span></div></div>
+  <div class="step"><div class="num">3</div><div class="sp"><div class="t">⏸️ Pausar todos</div><div class="d">Coloca os atendidos em espera</div></div><div class="ctl"><span>▲</span><span>▼</span><span>✕</span></div></div>
+  <div class="step"><div class="num">4</div><div class="sp"><div class="t">📁 Mover → nv2 <span class="badge">×1.5</span></div><div class="d">Velocidade própria neste passo</div></div><div class="ctl"><span>▲</span><span>▼</span><span>✕</span></div></div>
+  <div class="add">＋ Adicionar passo</div>
+  <div class="card row"><span class="lbl">⚙️ Ajustes</span><span class="sub sp">Velocidade 1.0 · 🔁 Loop ligado · 1 s entre ciclos</span><span class="sub">▾</span></div>
+  <div class="cta">⚡ Iniciar fluxo</div>
+  <div class="log">[13:00:27] 🤖 rod bot pronto!<br>[13:00:27] Fila: 12 · Na tela: 8 · Pausados: 3</div>
+ </div></div></div>
+
+<!-- ============ B ============ -->
+<div class="shot" id="B"><div class="cap">B · Paleta + corrente + detalhe<small>Toque num ícone da paleta para adicionar. O fluxo aparece como uma corrente curta; tocando num elo, os ajustes dele abrem embaixo. Mais compacto, cabe mais passos sem rolar.</small></div>
+<div class="panel">
+ <div class="hdr"><div class="logo">🤖</div><div class="ttl">rod bot</div><span class="pill">Parado</span><span class="pill ac">🟢 Tema</span><span class="x">✕</span></div>
+ <div class="body">
+  <div class="row"><div class="sel"><span>⭐ Auto clássico</span><span>▾</span></div><div class="ib">💾</div></div>
+  <div class="seg"><b>⏳ Aguardando</b><b class="on">🆕 Que vão cair</b><b>👥 Ambos</b></div>
+  <div class="pal"><div style="opacity:.35"><i>📥</i>Atender</div><div><i>✉️</i>Enviar</div><div><i>⏸️</i>Espera</div><div><i>📁</i>Mover</div><div><i>🔁</i>Transferir</div></div>
+  <div class="card"><div class="sub" style="margin-bottom:7px">Seu fluxo (para cada cliente que cair):</div>
+   <div class="chain"><span class="node">🆕 Cliente caiu</span><span class="arrow">→</span><span class="node on">✉️ Enviar</span><span class="arrow">→</span><span class="node">⏸️ Pausar</span></div></div>
+  <div class="card"><div class="row" style="margin-bottom:8px"><span class="lbl">✉️ Enviar</span><span class="sp"></span><span class="sub">▲ ▼ ✕</span></div>
+   <div class="seg" style="margin-bottom:8px"><b class="on">🛡️ Só enviar</b><b>⚡ Enviar + Finalizar</b></div>
+   <div class="fld" style="height:52px">Realizamos uma nova atualização no seu aplicativo. Por gentileza…</div>
+   <div class="row" style="margin-top:8px"><span class="sub sp">Velocidade deste passo</span><div class="fld" style="width:90px;padding:5px 8px">do fluxo</div></div></div>
+  <div class="card"><div class="kv"><span class="sub">Novos chats</span><b>14</b></div><div class="kv"><span class="sub">Contador Blip</span><b>3</b></div><div class="kv"><span class="sub">Na fila do BM</span><b>0</b></div></div>
+  <div class="row"><div class="fld" style="width:120px">⚡ 1.0×</div><div class="cta sp">▶ Ativar</div></div>
+ </div></div></div>
+
+<!-- ============ C ============ -->
+<div class="shot" id="C"><div class="cap">C · Assistente em 3 telas<small>Uma pergunta por tela: 1) Para quem 2) O que fazer (toca na ordem) 3) Ajustes. Mais guiado para quem nunca usou; para quem usa todo dia, os fluxos salvos pulam direto para o Iniciar.</small></div>
+<div class="panel">
+ <div class="hdr"><div class="logo">🤖</div><div class="ttl">rod bot</div><span class="pill">Parado</span><span class="pill ac">🟢 Tema</span><span class="x">✕</span></div>
+ <div class="body">
+  <div class="dots"><b class="ok">1 Para quem ✓</b>›<b class="on">2 O que fazer</b>›<b>3 Ajustes</b></div>
+  <div class="sub">Toque nas ações <b style="color:#e8eef3">na ordem</b> em que devem acontecer:</div>
+  <div class="grid2">
+   <div class="big on"><span class="o">1</span><div class="t">📥 Atender fila</div><div class="d">Puxa clientes até zerar</div></div>
+   <div class="big on"><span class="o">2</span><div class="t">✉️ Enviar</div><div class="d">Só enviar · ou + finalizar</div></div>
+   <div class="big on"><span class="o">3</span><div class="t">⏸️ Espera</div><div class="d">Pausar ou despausar</div></div>
+   <div class="big"><div class="t">📁 Mover</div><div class="d">Para uma pasta</div></div>
+   <div class="big" style="grid-column:span 2"><div class="t">🔁 Transferir</div><div class="d">Para um atendente pelo nome</div></div>
+  </div>
+  <div class="card sub">Ordem: 📥 Atender → ✉️ Enviar → ⏸️ Pausar &nbsp;✅ válida</div>
+  <div class="row"><div class="btn2">‹ Voltar</div><div class="cta sp" style="padding:10px">Próximo ›</div></div>
+  <div class="foot"><span>⭐ Fluxos salvos: Piloto clássico · Auto clássico · Só mover nv2</span></div>
+ </div></div></div>
+
+<!-- ============ D ============ -->
+<div class="shot" id="D"><div class="cap">D · Duas abas novas: Montar | Acompanhar<small>As abas deixam de ser “funções” e viram “momentos”: em Montar você escolhe o fluxo; em Acompanhar vê o stepper rodando, os contadores e o log. A tela de montar fica limpa, sem log embaixo.</small></div>
+<div class="panel">
+ <div class="hdr"><div class="logo">🤖</div><div class="ttl">rod bot</div><span class="pill ac">● Rodando</span><span class="pill ac">🟢 Tema</span><span class="x">✕</span></div>
+ <div class="body">
+  <div class="tabs"><b>🧩 Montar</b><b class="on">📊 Acompanhar</b></div>
+  <div class="card row"><span class="lbl">⭐ Piloto clássico</span><span class="sp"></span><span class="pill ac">Ciclo #3</span></div>
+  <div class="step" style="border-color:#4d7a2b"><div class="num" style="background:var(--ac);color:#0b1a04">✓</div><div class="sp"><div class="t">📥 Atender fila</div><div class="d">Fila zerada (0)</div></div></div>
+  <div class="step" style="border-color:var(--ac);box-shadow:0 0 0 2px #8ef04a33"><div class="num">2</div><div class="sp"><div class="t">✉️ Enviar · Só enviar</div><div class="d" style="color:var(--ac)">Enviando 5 de 8…</div></div></div>
+  <div class="step" style="opacity:.6"><div class="num">3</div><div class="sp"><div class="t">⏸️ Pausar todos</div><div class="d">Aguardando</div></div></div>
+  <div class="step" style="opacity:.6"><div class="num">4</div><div class="sp"><div class="t">📁 Mover → nv2</div><div class="d">Aguardando</div></div></div>
+  <div class="row"><div class="btn2">⏸ Pausar</div><div class="btn2" style="border-color:#6b2b2b;color:#f29a9a">⏹ Parar</div></div>
+  <div class="log">Ciclo #2: 6 atendidos · 6 enviados · 6 pausados · 6 movidos · 0 falhas<br>[13:04:10] 👤 [5] Chat selecionado: Cliente Fictício</div>
+ </div></div></div>
+
+<!-- ============ M ============ -->
+<div class="shot" id="M"><div class="cap">Modal de ordem inválida (vale para qualquer layout)<small>O passo com problema fica vermelho na hora; ao tentar iniciar, o modal explica e oferece a correção.</small></div>
+<div class="panel">
+ <div class="hdr"><div class="logo">🤖</div><div class="ttl">rod bot</div><span class="pill">Parado</span><span class="pill ac">🟢 Tema</span><span class="x">✕</span></div>
+ <div class="body">
+  <div class="seg"><b class="on">⏳ Aguardando</b><b>🆕 Que vão cair</b><b>👥 Ambos</b></div>
+  <div class="step"><div class="num">1</div><div class="sp"><div class="t">✉️ Enviar · Só enviar</div></div></div>
+  <div class="step"><div class="num">2</div><div class="sp"><div class="t">⏸️ Pausar todos</div></div></div>
+  <div class="step err"><div class="num" style="border-color:var(--red);color:var(--red)">3</div><div class="sp"><div class="t">✉️ Enviar · Só enviar</div><div class="d" style="color:#ff9a9a">Cliente em espera não recebe mensagem</div></div></div>
+  <div class="cta" style="opacity:.35">⚡ Iniciar fluxo</div>
+  <div style="height:120px"></div>
+ </div>
+ <div class="overlay"><div class="modal"><h3>⛔ Esta ordem não é aceita</h3>
+  <div style="font-size:13.5px;margin-bottom:6px">O passo <b>3 · Enviar</b> vem depois de <b>2 · Pausar</b>.</div>
+  <div class="sub" style="margin-bottom:12px">Cliente em espera não recebe mensagem. Para enviar de novo, coloque <b style="color:#e8eef3">Despausar</b> antes, ou remova o passo 3. Enviar duas vezes para o mesmo cliente também não é permitido.</div>
+  <div class="row"><div class="btn2">Entendi</div><div class="cta sp" style="padding:10px;font-size:13.5px">Remover passo 3</div></div>
+ </div></div>
+</div></div>
+</body></html>
