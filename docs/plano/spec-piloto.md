@@ -197,6 +197,14 @@ Se alguma for falsa, ajustar a tabela do §6 (é uma linha cada) antes de libera
 1. **Extrair o código** do `javascript:` para arquivos pequenos em `src/` e criar um **build** que regera
    `rodbot-final.html`. Antes de qualquer mudança, provar que o HTML gerado é **idêntico** ao atual (teste de ida e
    volta). A partir daí, **nunca editar o `javascript:` codificado** à mão.
+   - **Como extrair sem quebrar:** o código é um único bloco (≈3.900 linhas) com variáveis compartilhadas (`rodando`,
+     `CONFIG`, elementos da tela). **Não reescrever nem separar em módulos de uma vez.** Primeiro dividir o código
+     **pelos blocos de comentário que já existem** (6 marcadores `====`), **sem mudar nenhuma linha**, e provar que
+     a concatenação dos arquivos, na mesma ordem, é idêntica ao código original. A refatoração em módulos menores
+     vem depois, com testes, e só do que for tocado pelas etapas seguintes.
+   - **Codificação (verificada):** `encodeURIComponent(codigo)` com `! ' ( ) *` também escapados (`%21 %27 %28 %29
+     %2A`) reproduz o `href` atual **byte a byte**. A segunda cópia do mesmo código (campo `bm-code`) é igual à
+     primeira. O build deve usar exatamente essa codificação e gerar as duas cópias.
 2. **Validador** como função pura com testes de todas as regras do §6 (inclui Enviar → Pausar → Enviar,
    Enviar → Pausar → Despausar → Enviar (regra 4 vence), Finalizar → Pausar, Despausar como 1º passo em ⏳, Despausar
    em 🆕, loop sem Atender, e a precedência da regra 8).
