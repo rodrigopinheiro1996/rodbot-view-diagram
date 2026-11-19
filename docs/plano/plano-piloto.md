@@ -1,6 +1,6 @@
 # Plano de implementação — novo Piloto do rod bot
 
-Fonte única: `docs/plano/spec-piloto.md` (citada como §N; versão do commit `2a89146`). Em conflito, a spec manda.
+Fonte única: `docs/plano/spec-piloto.md` (citada como §N; versão do commit `be2729f`). Em conflito, a spec manda.
 Layout: **D + A com a paleta da B**; modal em `layouts/layout-M.png`. A ordem segue o §12 (1 extração · 2 validador ·
 3 velocidade · 4 motor · 5 tela · 6 Playwright). Nada aqui está implementado ainda.
 
@@ -497,14 +497,12 @@ reais do Blip, **CSP do Blip** (bookmarklet maior), seletores só verificados na
 
 ## Pontos ainda ambíguos
 
-Os 9 pontos anteriores foram decididos e entraram na spec (`2a89146`). Restam só detalhes de implementação, sem
-bloquear a Tarefa 1:
+Nenhum. Os 3 últimos foram decididos e estão na spec (`be2729f`): log "⚠️ N card(s) sem número, pulado(s)" por ciclo em ⏳;
+em 👥 o ticket de execução anterior ainda na tela é tratado de novo com o log "tratado de novo (execução anterior)"
+(só informativo); a memória de ⏳ é só da execução porque o BM pode querer outro fluxo ou mensagem nos mesmos tickets no
+mesmo dia (parar e iniciar de novo trata os mesmos tickets de novo); a tabela `pausas.md` é aplicada pelo critério do §8
+sem revisão prévia e listada no relatório final.
 
-1. **Cards sem id em ⏳ (Tarefa 9/11):** o §5 manda pular e anotar. Se na Blip real vários cards ficarem sem id (por
-   exemplo, por carregamento tardio), o ciclo envia menos do que o BM espera. *Proposta:* o log do ciclo traz
-   "N sem número, pulados" para ficar visível.
-2. **Fase de vigia do 👥 e a memória de 24 h:** na passada em lote, ticket tratado em execução anterior (≤ 24 h) que
-   ainda está na fila **é tratado de novo** (a spec diz que o lote usa a memória da execução). *Proposta:* manter
-   assim e registrar no log "tratado de novo (execução anterior)".
-3. **Classificação dos `sleep` sem revisão prévia:** aplico o critério e entrego `pausas.md` no relatório final. Se você
-   discordar de alguma linha, ajusto a tabela e o teste-guarda; custo é de uma linha.
+## Andamento
+
+- Tarefa 1: feita (commit `build: divide o bookmarklet em 4 trechos…`). Parar aqui para conferência do BM.
