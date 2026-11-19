@@ -1,6 +1,6 @@
 # Plano de implementação — novo Piloto do rod bot
 
-Fonte única: `docs/plano/spec-piloto.md` (citada como §N; versão do commit `b42ff9c`). Em conflito, a spec manda.
+Fonte única: `docs/plano/spec-piloto.md` (citada como §N; versão do commit `be2729f`). Em conflito, a spec manda.
 Layout: **D + A com a paleta da B**; modal em `layouts/layout-M.png`. A ordem segue o §12 (1 extração · 2 validador ·
 3 velocidade · 4 motor · 5 tela · 6 Playwright). Nada aqui está implementado ainda.
 
@@ -18,9 +18,11 @@ Layout: **D + A com a paleta da B**; modal em `layouts/layout-M.png`. A ordem se
   A refatoração em arquivos menores só acontece **no que a tarefa seguinte vai tocar**.
 - Código novo e puro vai em `src/js/puro/` (sem DOM), entra na concatenação e é testado no Node via `vm`.
 - Sem dependências novas: `node:test` (Node 22) e o `playwright` já instalado.
-- **Versão distribuível em todo commit:** até a Tarefa 22 o painel antigo continua funcionando; a UI nova nasce
-  atrás do interruptor `localStorage.rf_rodbot_ui_nova_v1 = '1'` (desligado por padrão) e só vira padrão na Tarefa 22.
-  Nenhum commit intermediário deixa o Iniciar quebrado (§12.4).
+- **Painel antigo até a troca (§12.4/§12.5):** até a Tarefa 22 o painel antigo continua funcional e é o padrão. A UI
+  nova nasce atrás do interruptor **provisório** `localStorage.rf_rodbot_ui_nova_v1 = '1'`, só para testá-la
+  (Tarefas 15–21). **Nenhum HTML com as duas UIs vai para o BM:** a troca (Tarefa 22) remove o painel antigo **e** o
+  interruptor (sem chave inerte) e é o primeiro HTML com a UI nova. O gancho `window.__rodBot` (Tarefa 11) só existe com
+  `window.__rodBotTeste === true` e pode ficar.
 - Se um seletor do Blip falhar na página falsa ou for duvidoso: **parar e pedir o `outerHTML` do trecho ao BM**.
   Não inventar seletor.
 
@@ -93,7 +95,7 @@ Arquivo `src/js/puro/validar-fluxo.js` + `test/unidade/validar-fluxo.test.mjs`; 
 (carrega um arquivo de `src/js/puro/` num `vm` e devolve as funções declaradas).
 
 Formato: `validarFluxo({paraQuem, passos}) → {ok:true} | {ok:false, erros:[{indice, regra, mensagem, correcao?}]}` — o validador
-**devolve todas as regras violadas** de cada índice (a regra 8 só decide 4 sobre 1); a ordem em que o modal mostra é a ambiguidade 8;
+**devolve todas as regras violadas** de cada índice (a regra 8 só decide 4 sobre 1); o modal mostra um só (regra 10 do §6, Tarefa 3);
 `indice` base 1. Notação: `A`=Atender, `E`=Só enviar, `EF`=Enviar+Finalizar, `P`=Pausar, `D`=Despausar, `M`=Mover,
 `T`=Transferir. Estado: `tickets` ∈ {há, vazio}; `pausados` ∈ {desconhecido, nenhum, alguns, todos}; `enviado`
 (volta a falso no Atender). Início em ⏳: `há` + `desconhecido`; em 🆕/👥 (por chat): `há` + `nenhum`.
@@ -106,7 +108,7 @@ Formato: `validarFluxo({paraQuem, passos}) → {ok:true} | {ok:false, erros:[{in
 - ⏳ `[EF,A,E]` → ok (Atender é a exceção da regra 2)
 - **regra 3, Despausar como 1º passo em ⏳:** `[D]` → **ok**; `[D,E]` → ok; `[D,M]` → ok
 - regra 3: ⏳ `[P,D,D]` e `[D,D]` → o último passo tem erro **contendo** a regra 3 (`pausados = nenhum` depois de
-  Despausar); o teste afirma "contém regra 3", pois a regra 5 também dispara (ver ambiguidade 8)
+  Despausar); o teste afirma "contém regra 3", pois a regra 5 também dispara (regra 10 do §6)
 - **Despausar bloqueado em 🆕/👥:** 🆕 `[D]` → erros no índice 1: `regra:3` (estado inicial `nenhum`) **e** `indisponivel`;
   🆕/👥 `[E,P,D]` → erro `{indice:3, regra:'indisponivel'}` (depois de Pausar `pausados = todos`, então a regra 3
   **não** dispara; quem bloqueia é a indisponibilidade, Tarefa 4)
@@ -130,8 +132,16 @@ Formato: `validarFluxo({paraQuem, passos}) → {ok:true} | {ok:false, erros:[{in
 - ⏳ `[P,D,P]` → ok; ⏳ `[E,P,D]` → ok
 - frases do modal: "O passo 3 · Enviar vem depois de 2 · Pausar." para ⏳ `[E,P,E]`→ (regra 4) e `[P,E]` (regra 1)
   com texto correspondente
+- **regra 10 — `erroDoModal(erros)`:** devolve o erro do **primeiro passo com erro**, escolhendo a regra na ordem
+  **indisponível → 2 → 3 → 4 → 1 → 5**:
+  - ⏳ `[D,D]` → modal mostra regra 3 (não a 5); índice 2; `erros` continua com as duas (passo vermelho)
+  - 🆕 `[D]` → modal mostra **indisponível** (não a regra 3)
+  - ⏳ `[E,E,D,D]`… primeiro passo com erro é o 2 (regra 4), não o 4
+  - ⏳ `[EF,P,P]` → índice 2 (regra 2) vence o índice 3 (regra 5)
+  - ⏳ `[E,P,D,E]` → regra 4 (4 antes de 1); `ok:true` → `erroDoModal` devolve `null`
+- 👥 usa o estado por chat (regra 11): 👥 `[E,P]` → ok; sem diferença prática, pois Despausar não existe em 👥
 
-**Comando:** `npm test` · **Commit:** `feat(validador): regras 1, 4, 5 e precedência da regra 4 sobre a 1`
+**Comando:** `npm test` · **Commit:** `feat(validador): regras 1, 4, 5, precedência da regra 4 e escolha do erro do modal (regra 10)`
 
 ### Tarefa 4 — Loop efetivo, modos, disponibilidade e tamanho
 
@@ -183,34 +193,42 @@ O loop **deixa de ser erro**: `loopEfetivo({paraQuem, passos, loopEscolha}) → 
 
 **Comando:** `npm test` · **Commit:** `feat(velocidade): pausa = pausa atual ÷ velocidade com piso de 50%; pausa entre ciclos fica fora`
 
-### Tarefa 7 — Inventário das pausas e aplicação só à lista fechada
+### Tarefa 7 — Inventário das pausas e aplicação pelo critério da natureza
 
 Os ~70 `sleep(` estão espalhados por muitas funções: **não há `refactor(mover)` aqui** (uma mudança que só move linhas
 não consegue juntá-los). Os pontos de chamada mudam **no lugar**, no commit de comportamento, protegidos pela guarda
 e pelo teste "velocidade 1.0 ⇒ mesmos valores de `sleep` que antes".
 
-**Arquivos:** `docs/plano/pausas.md` (tabela gerada na tarefa: cada `sleep(...)` do código, função, valor, decisão
-**Muda / Não muda**), `src/js/puro/pausas.js` (`velocidadeAtual`, `pausaAcao(ms)` = `sleep(pausa(ms, velocidadeAtual))`),
-`test/unidade/pausas-lista-fechada.test.mjs`.
+**Critério (§8): a natureza da pausa, não o número de ms.** **Entra** = ritmo fixo entre ações (entre cliques, entre
+tickets, intervalo do Atender). **Não entra** = espera de UI/segurança (esperar algo carregar/aparecer depois de um
+clique, polling, recuo após erro). **Na dúvida, não entra.**
+- Sempre entram: `delayAcoes`, `delayTrocaTicket` (onde for ritmo), intervalo do Atender (500 ms), `AUTO_T.entreTickets`.
+- Sempre ficam de fora: `waitFor` e prazos de `AUTO_T`/`TRANSF_T`; `debounce`, `reconciliar`, `janelaFiltro`,
+  `janelaRolagem`, observers; `AUTO_T.espera`; `TRANSF_T.esperaModal`; `TRANSF_T.leituraVazia`; digitação do Transferir
+  (40/110 ms, `atraso`); recuo de 5000 ms; pausa entre ciclos; o piso `Math.max(800, delayTrocaTicket)` (espera de
+  carregamento: **não escala**, e `delayTrocaTicket` dentro dele também não).
+- Os demais literais (120, 150, 250, 300, 350, 400, 550, 600, 750, 1400, 1500, 1600…): **um a um** pelo critério.
+  **Sem esperar revisão do BM**; a tabela vai para o relatório final (Tarefa 24).
 
-Lista fechada (§8). **Muda:** `CONFIG.delayAcoes`, `CONFIG.delayTrocaTicket`, intervalo do Atender (500 ms), `sleep`
-literais curtos entre cliques (120/150/550 ms etc.), `AUTO_T.entreTickets`. **Não muda:** `waitFor` e prazos de
-`AUTO_T`/`TRANSF_T`; `debounce`, `reconciliar`, `janelaFiltro`, `janelaRolagem`, observers; `AUTO_T.espera`;
-`TRANSF_T.esperaModal`; atrasos de digitação do Transferir (40/110 ms, variável `atraso`); a pausa entre ciclos.
-Literais fora da lista nominal (250/300/350/400/600/700/750/800/1200/1400/1500/1600/5000,
-`Math.max(800, delayTrocaTicket)`, `TRANSF_T.leituraVazia`): classificados um a um em `pausas.md` — ver ambiguidade 1.
+**Arquivos**
+- `docs/plano/pausas.md`: tabela com **uma linha por `sleep(`**: arquivo/linha, valor, função, decisão
+  (**ritmo → entra** / **espera de UI → não entra**) e motivo de uma frase
+- `src/js/puro/pausas.js` (`velocidadeAtual`, `pausaAcao(ms)` = `sleep(pausa(ms, velocidadeAtual))`)
+- `test/unidade/pausas-lista-fechada.test.mjs`
+- este é o primeiro commit que muda o bundle de propósito: remove `scripts/extrair.mjs` e o teste "idêntico ao 3ca5940"
 
 **Testes primeiro**
-- **guarda de código:** lê `src/js/**` e acha todo `sleep(`; cada ocorrência deve estar em `pausas.md` com decisão
-  **Muda** (e então a chamada é `pausaAcao(…)`) ou **Não muda** (e então segue `sleep(…)`). Ocorrência nova não
-  listada → teste falha ("classifique esta pausa em docs/plano/pausas.md")
-- `AUTO_T`/`TRANSF_T` (prazos) e `waitFor` **nunca** aparecem como argumento de `pausaAcao`
-- `pausaAcao(1200)` com velocidade 2 → `sleep(600)` (relógio falso); com velocidade 1 → `sleep(1200)` (**idêntico a hoje**)
-- `AUTO_T.entreTickets` 600 → 300 com 2.0; `AUTO_T.espera` 1000 → 1000 com 2.0; `esperaModal` e 40/110 ms → inalterados
-- com velocidade 1.0 a lista de valores passados a `sleep` num cenário falso é **igual** à do código antigo
-  (garante que as abas antigas continuam como hoje)
+- **guarda de código:** lê `src/js/**`, acha todo `sleep(` e exige uma linha correspondente em `pausas.md`; decisão
+  "entra" ⇒ a chamada é `pausaAcao(…)`; "não entra" ⇒ continua `sleep(…)`. Ocorrência sem linha → falha
+  ("classifique esta pausa em docs/plano/pausas.md")
+- cada linha de `pausas.md` tem motivo preenchido e decisão ∈ {entra, não entra}; "sempre de fora" nunca marcado "entra"
+- `pausaAcao(1200)` com velocidade 2 → `sleep(600)` (relógio falso); com 1 → `sleep(1200)` (**idêntico a hoje**)
+- `AUTO_T.entreTickets` 600 → 300 com 2.0; `AUTO_T.espera` → 1000 com 2.0; `esperaModal`, `leituraVazia`, 40/110 ms,
+  5000 ms → inalterados; `Math.max(800, delayTrocaTicket)` com 2.0 → continua ≥ 800
+- com velocidade 1.0 a sequência de valores passados a `sleep` num cenário falso é **igual** à do código antigo
+  (garante que o painel antigo continua como hoje)
 
-**Comando:** `npm test && npm run build` · **Commit:** `feat(velocidade): aplica a velocidade só às pausas entre ações da lista fechada`
+**Comando:** `npm test && npm run build` · **Commit:** `feat(velocidade): aplica a velocidade às pausas de ritmo, classificadas uma a uma em pausas.md`
 
 ---
 
@@ -248,6 +266,11 @@ forçadas, botão Atender ausente.
   log "já estava em espera" para os pausados puxados de novo; ninguém recebe duas mensagens
 - Enviar com `pausados` desconhecido: tickets 1 (ativo) e 2 (pausado) → envia só ao 1; 2 é pulado e anotado
 - Despausar como 1º passo em ⏳ → `despausar` chamado antes de tudo, sem Atender
+- **memória só da execução (§5):** ticket 7 enviado no ciclo 1 não recebe no ciclo 2 do mesmo Iniciar; ticket 7 que
+  **volta à fila** num **novo Iniciar** recebe o fluxo (memória zerada); a chave `rf_rodbot_auto_tickets_v1` **não é lida
+  nem gravada** em ⏳
+- **card sem id extraído:** pulado e anotado no log ("card sem número, pulado"); enviar nunca é chamado para ele
+- **nenhum** card da tela com id → falha **geral** do passo (para o fluxo, passo `Falha`)
 - falha de **item** (`enviar` devolve `{falhas:1}`) → segue; log "… 1 falha"
 - falha **geral** (`ErroGeral('botão Atender não encontrado')`) → para, passo `Falha`, motivo no log, passos seguintes não chamados
 - log inicial `"Fila: 12 · Na tela: 8 · Pausados: 3"`; fim de ciclo `"Ciclo #3: 5 atendidos · 5 enviados · 5 pausados · 5 movidos · 0 falhas"`
@@ -263,8 +286,11 @@ Reaproveita a lógica do Auto (`03-auto.js`) por baixo; fica com observador fals
 **Testes primeiro**
 - 🆕 `[E,P]`, chegam 101 e 102 → 101 faz enviar→**confirmar**→pausar, depois 102; nunca intercalados
 - envio não confirmado → não pausa, falha de item anotada, segue para o 102
-- id 101 reaparece → ignorado (`rf_rodbot_auto_tickets_v1`, 24 h); chats presentes **antes** de ativar → ignorados em 🆕
-- 👥 → roda o fluxo **uma vez** nos que aguardam (sem loop), depois vigia; ticket do lote que "cai" de novo não recebe outra vez
+- 🆕 usa as **24 h do Auto**: id 101 reaparece (inclusive depois de reabrir o painel) → ignorado (`rf_rodbot_auto_tickets_v1`);
+  chats presentes **antes** de ativar → ignorados em 🆕
+- 👥 → roda o fluxo **uma vez** nos que aguardam (sem loop) usando a **memória da execução**; os tratados entram nela
+  **e** na de 24 h; a fase de vigia usa as 24 h; ticket do lote que "cai" de novo não recebe outra vez; ticket de uma
+  execução anterior (≤ 24 h) que está na fila de espera **ainda é tratado** no lote (a 24 h só vale na vigia)
 - "Também puxar a fila" ligada → motor chama `atender`; os puxados contam como "caiu" e recebem o fluxo uma vez; desligada → nunca chama `atender`
 - 🆕/👥 `[EF]` → `abrirProximo:false`; finaliza só o chat atual
 - velocidade: `AUTO_T.entreTickets` entre chats usa `pausaAcao`; `AUTO_T.espera` não
@@ -278,12 +304,15 @@ Primeiro `refactor(mover)` isolando as funções que serão tocadas (`passo1…5
 `executarMoverParaPastaTodos`, `executarEscreverParaTodos`, `executarAtendimentoAutomatico`, `tTransferirTicket`,
 `autoProcessarTicket`). Depois cada uma passa a aceitar mensagem/tag/pasta/atendente/`abrirProximo` por **parâmetro**,
 mantendo o comportamento antigo quando chamada sem parâmetro (as abas antigas continuam). O motor é exposto em
-`window.__rodBot.executarFluxo` **só quando** `window.__rodBotTeste === true` (ver ambiguidade 5).
+`window.__rodBot.executarFluxo` **só quando** `window.__rodBotTeste === true` (§12.4).
 
 **Testes primeiro**
 - unidade: cada função chamada com parâmetros não lê `CONFIG`/campo da tela; chamada sem parâmetro → idêntica a hoje
 - unidade: nenhuma função do motor referencia `pilot…`/`obterCamposPainel`
 - e2e leve: `executarFluxo` com `[E]` e mensagem `"Olá"` na página falsa → mensagem digitada e enviada 1×
+- **gancho:** sem `__rodBotTeste` → `window.__rodBot` é `undefined`; com a flag definida antes de injetar → `executarFluxo` existe
+- **ids em ⏳:** a extração reaproveita `autoColetarTickets`/id do card do Auto; se o seletor falhar na página falsa →
+  **parar e pedir o `outerHTML` do card ao BM** (não inventar)
 
 **Comando:** `npm run verificar` · **Commits:** `refactor(mover): isola as funções de ação` · `feat(motor): ações recebem parâmetros e o motor roda o fluxo por dados`
 
@@ -426,14 +455,17 @@ Puro `src/js/puro/stepper.js` (`montarStepper(passos, execucao)`) + teste.
 
 ### Tarefa 22 — Ligar ao motor, pular para Acompanhar e remover as abas antigas
 
-Aqui (e só aqui) a UI nova vira padrão e as abas antigas saem. Antes: `refactor(mover)` isolando `15`/trechos do
-Piloto, Envio, Pastas e Fila/Auto que serão removidos.
+Aqui (e só aqui) a UI nova vira padrão: o **painel antigo e o interruptor `rf_rodbot_ui_nova_v1` são removidos** (sem chave
+inerte no `localStorage`). Este é o **primeiro HTML com a UI nova** e o primeiro que pode ir para o BM. Antes:
+`refactor(mover)` isolando os trechos do Piloto, Envio, Pastas e Fila/Auto que serão removidos.
 
 **Testes primeiro** (e2e na página falsa)
 - Iniciar válido → painel pula para Acompanhar, status "Rodando", stepper do fluxo
 - Parar → "Parado"; Pausar alterna para "Retomar"; só um fluxo por vez (Iniciar desabilitado enquanto roda)
 - falha geral → passo vermelho no stepper e motivo no log
-- DOM sem ids das abas Pastas/Envio/Fila/Auto/Piloto antigo; interruptor `rf_rodbot_ui_nova_v1` deixa de existir
+- DOM sem ids das abas Pastas/Envio/Fila/Auto/Piloto antigo; **nenhuma referência a `rf_rodbot_ui_nova_v1`** em `src/`
+  e, numa abertura limpa, a chave não é lida nem criada no `localStorage`
+- o HTML gerado só contém a UI nova (o painel antigo não está no bundle)
 - unidade: nenhuma referência a `executarPilotoLoop`, `pilotoEtapa*`, `autoBloqueiaOutras`, `obterCamposPainel`
 
 **Comando:** `npm run verificar` · **Commit:** `feat: Iniciar roda o fluxo montado e remove as abas antigas`
@@ -456,36 +488,21 @@ Piloto, Envio, Pastas e Fila/Auto que serão removidos.
 
 `docs/plano/entrega-piloto.md` e `README.md`. Diz claramente o que **não** foi testado no site real: S1–S3 (§11), tempos
 reais do Blip, **CSP do Blip** (bookmarklet maior), seletores só verificados na página falsa, contagem de
-"Na tela/Pausados" no log. Checklist para o BM conferir no Blip real antes de liberar.
+"Na tela/Pausados" no log. Checklist para o BM conferir no Blip real antes de liberar. **Inclui a tabela completa de `docs/plano/pausas.md`**
+(ritmo × espera de UI, uma linha por `sleep`) para o BM revisar depois.
 
 **Teste:** `npm run verificar` verde · **Commit:** `docs: notas de entrega do novo Piloto e o que falta testar no Blip real`
 
 ---
 
-## Pontos ainda ambíguos (com a minha proposta)
+## Pontos ainda ambíguos
 
-1. **Classificação dos `sleep` literais que a spec não nomeou** (250, 300, 350, 400, 600, 700, 750, 800, 1200, 1400,
-   1500, 1600, 5000, `Math.max(800, delayTrocaTicket)`, `TRANSF_T.leituraVazia`). O §8 só lista 120/150/550 "etc.".
-   *Proposta:* a Tarefa 7 gera `pausas.md` com cada ocorrência; entram em **Muda** só as pausas curtas (≤ ~600 ms)
-   entre cliques e as já citadas; as ≥ 1000 ms que esperam a interface reagir (modais, 5000) ficam em **Não muda**.
-   Você revisa a tabela antes de eu aplicar.
-2. **"6 marcadores ====":** no código são 3 comentários com `====` em cima e embaixo (6 linhas) ⇒ **4 trechos**, não 6.
-   *Proposta:* dividir em 4 (o plano já faz assim).
-3. **Memória "no máximo uma vez por ticket" em ⏳:** o Auto guarda ids por 24 h. Se ⏳ usar o mesmo armazenamento, um
-   cliente que volta para a fila no mesmo dia nunca mais recebe o fluxo. *Proposta:* em ⏳, memória só da
-   execução atual; em 🆕/👥, os 24 h do Auto como hoje.
-4. **"Seguidos" na regra 5:** *Proposta:* adjacentes (`[P,A,P]` é válido). O estado `pausados` após Atender **não muda**
-   (§6): `[A,P,A,E]` continua bloqueado pela regra 1.
-5. **Como o motor é acionado nas Etapas 4–5, sem tela:** *Proposta:* `window.__rodBot.executarFluxo` existe só com
-   `window.__rodBotTeste === true`; em produção só a UI da Tarefa 22 chama o motor.
-6. **Os passos do ⏳ precisam do número do ticket** para o controle por ticket; o Piloto atual não rastreia ids.
-   *Proposta:* na Tarefa 11 leio como o Auto extrai o id (`autoColetarTickets`) e reuso; se o seletor falhar na
-   página falsa, peço o `outerHTML` do card ao BM.
-7. **👥 e o estado inicial por chat:** o §6 usa `pausados = nenhum` por chat em 👥, mas a 1ª passada em lote age em
-   clientes cujo estado é desconhecido. Sem impacto hoje (Despausar não existe em 👥). *Proposta:* manter por chat.
-8. **Mais de uma regra no mesmo passo (além da 4 sobre a 1):** `[D,D]` e `[P,D,D]` violam as regras 3 e 5; 🆕 `[D]`
-   viola a 3 e a indisponibilidade. O validador devolve todas; a ordem que o modal mostra não está na spec.
-   *Proposta:* indisponível › 2 › 3 › 4 › 1 › 5 (do mais estrutural ao mais fino), mostrando só a 1ª no modal.
-9. **Itens do plano que não estão na spec:** (a) o interruptor `rf_rodbot_ui_nova_v1` (existem duas UIs entre as
-   Tarefas 15 e 22, para nenhum commit ficar com o Iniciar quebrado); (b) o gancho `__rodBotTeste` (ponto 5).
-   *Proposta:* manter os dois; ambos somem ou ficam inertes na Tarefa 22.
+Nenhum. Os 3 últimos foram decididos e estão na spec (`be2729f`): log "⚠️ N card(s) sem número, pulado(s)" por ciclo em ⏳;
+em 👥 o ticket de execução anterior ainda na tela é tratado de novo com o log "tratado de novo (execução anterior)"
+(só informativo); a memória de ⏳ é só da execução porque o BM pode querer outro fluxo ou mensagem nos mesmos tickets no
+mesmo dia (parar e iniciar de novo trata os mesmos tickets de novo); a tabela `pausas.md` é aplicada pelo critério do §8
+sem revisão prévia e listada no relatório final.
+
+## Andamento
+
+- Tarefa 1: feita (commit `build: divide o bookmarklet em 4 trechos…`). Parar aqui para conferência do BM.

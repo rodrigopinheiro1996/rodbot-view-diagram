@@ -1,0 +1,405 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Instalar rod bot — Bookmarklet</title>
+  <style>
+    :root {
+      --bg: #0b0f19;
+      --card-bg: #131b2e;
+      --border: #23304c;
+      --border-hover: #3b82f6;
+      --accent: #22d3ee;
+      --accent-glow: rgba(34, 211, 238, 0.25);
+      --primary: #2563eb;
+      --primary-hover: #1d4ed8;
+      --primary-glow: rgba(37, 99, 235, 0.35);
+      --text: #f1f5f9;
+      --text-muted: #94a3b8;
+      --success: #10b981;
+      --warning: #f59e0b;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      min-height: 100vh;
+      background: radial-gradient(circle at 50% 0%, #1e293b 0%, var(--bg) 75%);
+      color: var(--text);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 24px 16px;
+    }
+
+    .container {
+      width: 100%;
+      max-width: 580px;
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      padding: 32px;
+      box-shadow: 0 25px 60px -15px rgba(0, 0, 0, 0.7), 0 0 0 1px rgba(255, 255, 255, 0.04);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .container::before {
+      content: "";
+      position: absolute;
+      top: -120px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 300px;
+      height: 200px;
+      background: radial-gradient(circle, var(--accent-glow) 0%, transparent 70%);
+      pointer-events: none;
+    }
+
+    .header {
+      text-align: center;
+      margin-bottom: 28px;
+    }
+
+    .badge-version {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: rgba(34, 211, 238, 0.1);
+      border: 1px solid rgba(34, 211, 238, 0.25);
+      color: var(--accent);
+      padding: 4px 12px;
+      border-radius: 999px;
+      font-size: 12px;
+      font-weight: 600;
+      margin-bottom: 12px;
+    }
+
+    .header h1 {
+      font-size: 26px;
+      font-weight: 700;
+      letter-spacing: -0.03em;
+      margin-bottom: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+    }
+
+    .header p {
+      color: var(--text-muted);
+      font-size: 14px;
+      line-height: 1.5;
+    }
+
+    /* Zona de arrastar */
+    .drag-box {
+      background: rgba(11, 15, 25, 0.65);
+      border: 2px dashed var(--border);
+      border-radius: 16px;
+      padding: 28px 20px;
+      text-align: center;
+      margin-bottom: 24px;
+      transition: all 0.2s ease;
+      position: relative;
+    }
+
+    .drag-box:hover {
+      border-color: var(--accent);
+      box-shadow: 0 0 24px var(--accent-glow);
+    }
+
+    .bm-button {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      background: linear-gradient(135deg, #2563eb, #1d4ed8);
+      color: #ffffff;
+      text-decoration: none;
+      font-weight: 700;
+      font-size: 16px;
+      padding: 14px 28px;
+      border-radius: 12px;
+      box-shadow: 0 6px 20px var(--primary-glow);
+      cursor: grab;
+      user-select: none;
+      transition: all 0.15s ease;
+      border: 1px solid rgba(255, 255, 255, 0.15);
+    }
+
+    .bm-button:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 25px var(--primary-glow);
+      filter: brightness(1.08);
+    }
+
+    .bm-button:active {
+      cursor: grabbing;
+      transform: scale(0.98);
+    }
+
+    .drag-hint {
+      margin-top: 14px;
+      font-size: 13px;
+      color: var(--accent);
+      font-weight: 500;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+    }
+
+    .alert-banner {
+      margin-top: 10px;
+      font-size: 12.5px;
+      color: var(--warning);
+      min-height: 20px;
+      display: none;
+      background: rgba(245, 158, 11, 0.12);
+      border: 1px solid rgba(245, 158, 11, 0.3);
+      padding: 8px 12px;
+      border-radius: 8px;
+    }
+
+    /* Passos */
+    .steps-card {
+      background: rgba(11, 15, 25, 0.45);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 18px 20px;
+      margin-bottom: 22px;
+    }
+
+    .steps-title {
+      font-size: 13px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--text-muted);
+      margin-bottom: 14px;
+    }
+
+    .step-item {
+      display: flex;
+      align-items: flex-start;
+      gap: 12px;
+      margin-bottom: 12px;
+      font-size: 13.5px;
+      line-height: 1.5;
+    }
+
+    .step-item:last-child {
+      margin-bottom: 0;
+    }
+
+    .step-number {
+      width: 24px;
+      height: 24px;
+      background: #1e293b;
+      border: 1px solid #334155;
+      color: var(--accent);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 12px;
+      font-weight: 700;
+      flex-shrink: 0;
+      margin-top: 1px;
+    }
+
+    kbd {
+      background: #1e293b;
+      border: 1px solid #334155;
+      color: #38bdf8;
+      border-radius: 5px;
+      padding: 2px 6px;
+      font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+      font-size: 11.5px;
+      box-shadow: 0 1px 0 rgba(0, 0, 0, 0.2);
+    }
+
+    /* Manual / Fallback */
+    .fallback-card {
+      border-top: 1px solid var(--border);
+      padding-top: 18px;
+    }
+
+    .fallback-title {
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--text-muted);
+      margin-bottom: 10px;
+    }
+
+    .row-copy {
+      display: flex;
+      gap: 8px;
+    }
+
+    .copy-textarea {
+      flex: 1;
+      height: 38px;
+      background: #0b0f19;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 9px 12px;
+      color: #94a3b8;
+      font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+      font-size: 11px;
+      resize: none;
+      outline: none;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .btn-copy {
+      background: #10b981;
+      color: #ffffff;
+      border: none;
+      border-radius: 8px;
+      padding: 0 18px;
+      font-weight: 600;
+      font-size: 13px;
+      cursor: pointer;
+      transition: all 0.15s ease;
+      white-space: nowrap;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .btn-copy:hover {
+      background: #059669;
+    }
+
+    .btn-copy:active {
+      transform: scale(0.97);
+    }
+
+    .footer {
+      margin-top: 22px;
+      text-align: center;
+      font-size: 12px;
+      color: #64748b;
+    }
+
+    .footer span {
+      color: var(--accent);
+    }
+  </style>
+</head>
+<body>
+
+  <div class="container">
+    <div class="header">
+      <div class="badge-version">⚡ Versão Atualizada · Automação Desk</div>
+      <h1>🤖 rod bot</h1>
+      <p>Arraste o botão abaixo para a barra de favoritos do seu navegador para usar no Blip Desk.</p>
+    </div>
+
+    <!-- Zona de arrastar -->
+    <div class="drag-box">
+      <a id="bm-button" class="bm-button" href="javascript:@@RODBOT_BOOKMARKLET@@">
+        <span>🤖</span> rod bot
+      </a>
+      <div class="drag-hint">
+        <span>👆</span> Clique e <b>arraste</b> o botão acima para a barra de favoritos
+      </div>
+      <div id="alert-banner" class="alert-banner">
+        ⚠️ Não clique aqui! <b>Arraste</b> o botão para a barra de favoritos (Ctrl+Shift+B) ou clique em "Copiar Código" abaixo.
+      </div>
+    </div>
+
+    <!-- Passo a passo -->
+    <div class="steps-card">
+      <div class="steps-title">Como Instalar no Navegador</div>
+      
+      <div class="step-item">
+        <div class="step-number">1</div>
+        <div>Pressione <kbd>Ctrl + Shift + B</kbd> no teclado (ou <kbd>Cmd + Shift + B</kbd> no Mac) para exibir a <b>Barra de Favoritos</b>.</div>
+      </div>
+
+      <div class="step-item">
+        <div class="step-number">2</div>
+        <div>Clique com o mouse no botão azul <b>🤖 rod bot</b> acima, segure e <b>arraste até a barra de favoritos</b>. Solte lá.</div>
+      </div>
+
+      <div class="step-item">
+        <div class="step-number">3</div>
+        <div>No <b>Blip Desk</b>, basta clicar no favorito recém-criado na sua barra para abrir o painel do <b>rod bot</b>!</div>
+      </div>
+    </div>
+
+    <!-- Alternativa de cópia manual -->
+    <div class="fallback-card">
+      <div class="fallback-title">Prefere copiar o código manualmente?</div>
+      <div class="row-copy">
+        <input id="bm-code" class="copy-textarea" type="text" readonly value="javascript:@@RODBOT_BOOKMARKLET@@">
+        <button id="btn-copy" class="btn-copy" type="button">
+          <span>📋</span> Copiar Código
+        </button>
+      </div>
+    </div>
+
+    <div class="footer">
+      Criado por <span>Rodrigo Facilidades</span> · Pronto para uso no Blip Desk
+    </div>
+  </div>
+
+  <script>
+    const bmBtn = document.getElementById('bm-button');
+    const alertBanner = document.getElementById('alert-banner');
+    const copyBtn = document.getElementById('btn-copy');
+    const bmCode = document.getElementById('bm-code');
+
+    // Ao clicar em vez de arrastar, orienta o usuário
+    bmBtn.addEventListener('click', function(e) {
+      e.preventDefault();
+      alertBanner.style.display = 'block';
+      setTimeout(() => {
+        alertBanner.style.display = 'none';
+      }, 5000);
+    });
+
+    // Copiar código para a área de transferência
+    copyBtn.addEventListener('click', async function() {
+      let ok = false;
+      try {
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+          await navigator.clipboard.writeText(bmCode.value);
+          ok = true;
+        }
+      } catch (err) {}
+
+      if (!ok) {
+        try {
+          bmCode.select();
+          document.execCommand('copy');
+          ok = true;
+        } catch (err) {}
+      }
+
+      if (ok) {
+        copyBtn.innerHTML = '<span>✅</span> Copiado!';
+        copyBtn.style.background = '#059669';
+      } else {
+        copyBtn.innerHTML = '<span>⚠️</span> Ctrl + C';
+      }
+
+      setTimeout(() => {
+        copyBtn.innerHTML = '<span>📋</span> Copiar Código';
+        copyBtn.style.background = '#10b981';
+      }, 2500);
+    });
+  </script>
+</body>
+</html>
