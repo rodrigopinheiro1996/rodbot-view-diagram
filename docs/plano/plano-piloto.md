@@ -27,8 +27,9 @@ Fonte única: `docs/plano/spec-piloto.md` (citada como §N). Layout: **D + A com
 - `rodbot-final.html`: 581.517 caracteres, 405 linhas, LF. O código aparece **duas vezes**, idêntico:
   `<a id="bm-button" href="javascript:…">` e `<input id="bm-code" … value="javascript:…">` (285.647 caracteres cada).
 - Decodificado: 163.994 caracteres, 3.879 linhas; começa em `(function () {` e termina em `})();;void 0;`.
-- Codificação = `encodeURIComponent` **mais** `! ' ( ) * ~` em `%XX` maiúsculo (só `A–Z a–z 0–9 - _ .` ficam crus).
-  Conferido: `quote(decodificado, safe="-_.")` em Python reproduz o original exatamente.
+- Codificação = `encodeURIComponent` **mais** `! ' ( ) *` em `%XX` maiúsculo (crus: `A–Z a–z 0–9 - _ . ~`).
+  Conferido: `quote(decodificado, safe="-_.")` em Python reproduz o original exatamente. O código atual não tem `~`;
+  segue a regra do `encodeURIComponent` (fica cru).
 - O código é uma IIFE única com estado compartilhado por closure ⇒ os arquivos de `src/` são **trechos
   concatenados em ordem** (não módulos ES). A ordem fica em `src/ordem.txt`.
 
@@ -57,7 +58,7 @@ Fonte única: `docs/plano/spec-piloto.md` (citada como §N). Layout: **D + A com
 - `README.md` — seção "Como editar": editar `src/`, rodar `npm run build`, nunca o HTML
 
 **Testes primeiro (entrada → esperado)**
-- `codificar("a b(c)!*'~é")` → `"a%20b%28c%29%21%2A%27%7E%C3%A9"`
+- `codificar("a b(c)!*'~é")` → `"a%20b%28c%29%21%2A%27~%C3%A9"`
 - `codificar("A-z_0.9")` → `"A-z_0.9"` (inalterado)
 - `decodificar(codificar(x)) === x` para o JS decodificado inteiro
 - **Ida e volta (antes de qualquer mudança):** `concat(src/ordem.txt) === decodificar(href atual)` e
