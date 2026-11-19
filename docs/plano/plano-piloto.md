@@ -82,8 +82,8 @@ Layout: **D + A com a paleta da B**; modal em `layouts/layout-M.png`. A ordem se
 
 **Commit:** `build: divide o bookmarklet em 4 trechos de src/ e gera rodbot-final.html idêntico ao atual`
 
-> Depois deste commit: o teste "idêntico ao 3ca5940" é removido (cumpriu o papel; fica no histórico) e
-> `scripts/extrair.mjs` é apagado no mesmo commit, para ninguém rodá-lo de novo.
+> O commit da Tarefa 1 **contém** `scripts/extrair.mjs` e o teste "idêntico ao 3ca5940" (a prova fica no histórico).
+> Os dois são removidos **no primeiro commit que muda o bundle de propósito** (Tarefa 7), para ninguém rodá-los depois.
 
 ---
 
@@ -92,7 +92,8 @@ Layout: **D + A com a paleta da B**; modal em `layouts/layout-M.png`. A ordem se
 Arquivo `src/js/puro/validar-fluxo.js` + `test/unidade/validar-fluxo.test.mjs`; ajudante `test/util/carregar-puro.mjs`
 (carrega um arquivo de `src/js/puro/` num `vm` e devolve as funções declaradas).
 
-Formato: `validarFluxo({paraQuem, passos}) → {ok:true} | {ok:false, erros:[{indice, regra, mensagem, correcao?}]}`;
+Formato: `validarFluxo({paraQuem, passos}) → {ok:true} | {ok:false, erros:[{indice, regra, mensagem, correcao?}]}` — o validador
+**devolve todas as regras violadas** de cada índice (a regra 8 só decide 4 sobre 1); a ordem em que o modal mostra é a ambiguidade 8;
 `indice` base 1. Notação: `A`=Atender, `E`=Só enviar, `EF`=Enviar+Finalizar, `P`=Pausar, `D`=Despausar, `M`=Mover,
 `T`=Transferir. Estado: `tickets` ∈ {há, vazio}; `pausados` ∈ {desconhecido, nenhum, alguns, todos}; `enviado`
 (volta a falso no Atender). Início em ⏳: `há` + `desconhecido`; em 🆕/👥 (por chat): `há` + `nenhum`.
@@ -104,9 +105,11 @@ Formato: `validarFluxo({paraQuem, passos}) → {ok:true} | {ok:false, erros:[{in
 - ⏳ `[EF,P]` → erro `{indice:2, regra:2, mensagem:'Não sobra cliente na tela'}`; ⏳ `[M,E]`, `[T,P]` → regra 2 no índice 2
 - ⏳ `[EF,A,E]` → ok (Atender é a exceção da regra 2)
 - **regra 3, Despausar como 1º passo em ⏳:** `[D]` → **ok**; `[D,E]` → ok; `[D,M]` → ok
-- regra 3: ⏳ `[P,D,D]` → erro no índice 3 (`pausados = nenhum` depois de Despausar); ⏳ `[D,D]` → erro índice 2
-- **Despausar bloqueado em 🆕/👥:** 🆕 `[E,P,D]` e 👥 `[E,P,D]` → erro `{indice:3, regra:3}`; 🆕 `[D]` → erro índice 1
-  (o passo nem existe nesses modos: ver Tarefa 4)
+- regra 3: ⏳ `[P,D,D]` e `[D,D]` → o último passo tem erro **contendo** a regra 3 (`pausados = nenhum` depois de
+  Despausar); o teste afirma "contém regra 3", pois a regra 5 também dispara (ver ambiguidade 8)
+- **Despausar bloqueado em 🆕/👥:** 🆕 `[D]` → erros no índice 1: `regra:3` (estado inicial `nenhum`) **e** `indisponivel`;
+  🆕/👥 `[E,P,D]` → erro `{indice:3, regra:'indisponivel'}` (depois de Pausar `pausados = todos`, então a regra 3
+  **não** dispara; quem bloqueia é a indisponibilidade, Tarefa 4)
 - erro traz `correcao:{acao:'remover', indice}` → texto "Remover passo N"
 
 **Comando:** `npm test` · **Commit:** `feat(validador): simula o estado dos tickets e aplica as regras 2 e 3`
@@ -123,7 +126,7 @@ Formato: `validarFluxo({paraQuem, passos}) → {ok:true} | {ok:false, erros:[{in
   (não sugere Despausar, porque houve envio antes)
 - **sugestão de Despausar só sem envio antes:** ⏳ `[P,E]` → `correcao` sugere "coloque Despausar antes" e traz
   `{acao:'inserir', indice:2, passo:'despausar'}` além de remover; ⏳ `[E,P,E]` → só "Remover passo 3"
-- regra 5: ⏳ `[P,P]` → erro índice 2; `[D,D]` → erro índice 2; `[P,A,P]` → ok (adjacência literal; ver ambiguidade 4)
+- regra 5: ⏳ `[P,P]` → erro índice 2; `[D,D]` e `[P,D,D]` → erro **contendo** a regra 5 (além da 3); `[P,A,P]` → ok (adjacência literal; ver ambiguidade 4)
 - ⏳ `[P,D,P]` → ok; ⏳ `[E,P,D]` → ok
 - frases do modal: "O passo 3 · Enviar vem depois de 2 · Pausar." para ⏳ `[E,P,E]`→ (regra 4) e `[P,E]` (regra 1)
   com texto correspondente
@@ -182,8 +185,9 @@ O loop **deixa de ser erro**: `loopEfetivo({paraQuem, passos, loopEscolha}) → 
 
 ### Tarefa 7 — Inventário das pausas e aplicação só à lista fechada
 
-Primeiro um commit `refactor(mover)` extrai o que será tocado (`sleep`, `waitFor`, os blocos com `sleep(...)` literal)
-para `src/js/05-pausas.js`-like arquivos, provado por `comparar-bundle`. Depois o commit de comportamento.
+Os ~70 `sleep(` estão espalhados por muitas funções: **não há `refactor(mover)` aqui** (uma mudança que só move linhas
+não consegue juntá-los). Os pontos de chamada mudam **no lugar**, no commit de comportamento, protegidos pela guarda
+e pelo teste "velocidade 1.0 ⇒ mesmos valores de `sleep` que antes".
 
 **Arquivos:** `docs/plano/pausas.md` (tabela gerada na tarefa: cada `sleep(...)` do código, função, valor, decisão
 **Muda / Não muda**), `src/js/puro/pausas.js` (`velocidadeAtual`, `pausaAcao(ms)` = `sleep(pausa(ms, velocidadeAtual))`),
@@ -206,8 +210,7 @@ Literais fora da lista nominal (250/300/350/400/600/700/750/800/1200/1400/1500/1
 - com velocidade 1.0 a lista de valores passados a `sleep` num cenário falso é **igual** à do código antigo
   (garante que as abas antigas continuam como hoje)
 
-**Comando:** `npm test && npm run build && npm run comparar-bundle` (no commit de movimento) ·
-**Commits:** `refactor(mover): isola as pausas em arquivo próprio` · `feat(velocidade): aplica a velocidade só às pausas entre ações da lista fechada`
+**Comando:** `npm test && npm run build` · **Commit:** `feat(velocidade): aplica a velocidade só às pausas entre ações da lista fechada`
 
 ---
 
@@ -471,8 +474,8 @@ reais do Blip, **CSP do Blip** (bookmarklet maior), seletores só verificados na
 3. **Memória "no máximo uma vez por ticket" em ⏳:** o Auto guarda ids por 24 h. Se ⏳ usar o mesmo armazenamento, um
    cliente que volta para a fila no mesmo dia nunca mais recebe o fluxo. *Proposta:* em ⏳, memória só da
    execução atual; em 🆕/👥, os 24 h do Auto como hoje.
-4. **"Seguidos" na regra 5** e o estado `pausados` após Atender: *Proposta:* "seguidos" = passos adjacentes
-   (`[P,A,P]` é válido); depois de Pausar → Atender, `pausados` vira `alguns` (entrou gente ativa).
+4. **"Seguidos" na regra 5:** *Proposta:* adjacentes (`[P,A,P]` é válido). O estado `pausados` após Atender **não muda**
+   (§6): `[A,P,A,E]` continua bloqueado pela regra 1.
 5. **Como o motor é acionado nas Etapas 4–5, sem tela:** *Proposta:* `window.__rodBot.executarFluxo` existe só com
    `window.__rodBotTeste === true`; em produção só a UI da Tarefa 22 chama o motor.
 6. **Os passos do ⏳ precisam do número do ticket** para o controle por ticket; o Piloto atual não rastreia ids.
@@ -480,3 +483,9 @@ reais do Blip, **CSP do Blip** (bookmarklet maior), seletores só verificados na
    página falsa, peço o `outerHTML` do card ao BM.
 7. **👥 e o estado inicial por chat:** o §6 usa `pausados = nenhum` por chat em 👥, mas a 1ª passada em lote age em
    clientes cujo estado é desconhecido. Sem impacto hoje (Despausar não existe em 👥). *Proposta:* manter por chat.
+8. **Mais de uma regra no mesmo passo (além da 4 sobre a 1):** `[D,D]` e `[P,D,D]` violam as regras 3 e 5; 🆕 `[D]`
+   viola a 3 e a indisponibilidade. O validador devolve todas; a ordem que o modal mostra não está na spec.
+   *Proposta:* indisponível › 2 › 3 › 4 › 1 › 5 (do mais estrutural ao mais fino), mostrando só a 1ª no modal.
+9. **Itens do plano que não estão na spec:** (a) o interruptor `rf_rodbot_ui_nova_v1` (existem duas UIs entre as
+   Tarefas 15 e 22, para nenhum commit ficar com o Iniciar quebrado); (b) o gancho `__rodBotTeste` (ponto 5).
+   *Proposta:* manter os dois; ambos somem ou ficam inertes na Tarefa 22.
