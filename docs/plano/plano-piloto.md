@@ -510,3 +510,5 @@ sem revisão prévia e listada no relatório final.
   Tarefa 7, então a prova de ida e volta da Tarefa 1 continua valendo); entra quando o motor/UI o usarem.
   A Tarefa 2 já traz a regra `indisponivel` (Atender/Despausar em 🆕/👥), porque os testes dela dependem disso; a
   Tarefa 4 acrescenta o resto (loop efetivo, limites, `sem-para-quem`).
+- Tarefa 3: feita (regras 1, 4, 5, precedência 4 › 1, `erroDoModal` na ordem da regra 10 e `textoModal` com as frases do layout-M).
+  Fora do bundle, como a Tarefa 2.
