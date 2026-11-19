@@ -71,14 +71,21 @@ um modal. Meta de UX: clareza à primeira vista, sem poluição visual, sem dois
 - Em todos os modos, **cada ticket recebe o fluxo no máximo uma vez** (controle por número do ticket). Impede
   mensagem dupla. **Qual memória vale:**
   - ⏳: **memória só da execução** (vale por todos os ciclos do loop; zera quando o usuário clica em Iniciar de novo).
-    **Não** usar a memória de 24 h do Auto: um cliente que volta à fila no mesmo dia precisa poder receber o fluxo.
+    **Não** usar a memória de 24 h do Auto: o BM pode querer rodar **outro fluxo ou outra mensagem** nos mesmos
+    tickets no mesmo dia. (Não é por "cliente que volta": o id é o do **ticket**, e quem volta abre ticket novo, com
+    id novo.) **Consequência aceita:** parar e iniciar de novo, com os tickets ainda na tela, **trata os mesmos de novo**
+    (nova execução = memória zerada).
   - 🆕: a memória de **24 h do Auto** como hoje (`rf_rodbot_auto_tickets_v1`).
   - 👥: na passada em lote vale a memória da execução; os tickets tratados nela entram na memória da execução e a fase
     de vigia os ignora; a fase de vigia usa a de 24 h.
+    Um ticket de **execução anterior** (consta nas 24 h) que ainda esteja na tela é **tratado de novo** na passada em
+    lote; o log diz "tratado de novo (execução anterior)" (**só informativo, não bloqueia**).
   - **Número do ticket em ⏳:** o Piloto atual não rastreia ids; reaproveitar a extração do Auto
     (`autoColetarTickets`/ids do card). Card **sem id extraído** é pulado e anotado no log (nunca envia sem poder
     garantir que não duplica); se **nenhum** card da tela tiver id, é falha geral do passo. Se o seletor falhar na
     página falsa, pedir o `outerHTML` do card ao BM; não inventar.
+  - O log de cada ciclo em ⏳ traz a linha **"⚠️ N card(s) sem número, pulado(s)"** quando houver (para o BM notar se,
+    no Blip real, vários cards ficarem sem id e o ciclo enviar menos do que o esperado).
 - "**Também puxar a fila (Atender)**" (só 🆕/👥, desligada por padrão): ligada, o bot clica em Atender; quem é puxado
   conta como "caiu" e recebe o fluxo uma vez.
 - Ao adicionar Enviar sem "Para quem?" escolhido, o seletor pisca pedindo a resposta.
