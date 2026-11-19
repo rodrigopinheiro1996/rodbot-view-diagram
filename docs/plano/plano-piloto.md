@@ -506,3 +506,7 @@ sem revisão prévia e listada no relatório final.
 ## Andamento
 
 - Tarefa 1: feita (commit `build: divide o bookmarklet em 4 trechos…`). Parar aqui para conferência do BM.
+- Tarefa 2: feita. `src/js/puro/validar-fluxo.js` ainda **não** entra em `ordem.txt` (o bundle não muda até a
+  Tarefa 7, então a prova de ida e volta da Tarefa 1 continua valendo); entra quando o motor/UI o usarem.
+  A Tarefa 2 já traz a regra `indisponivel` (Atender/Despausar em 🆕/👥), porque os testes dela dependem disso; a
+  Tarefa 4 acrescenta o resto (loop efetivo, limites, `sem-para-quem`).
