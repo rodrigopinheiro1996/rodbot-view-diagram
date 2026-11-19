@@ -1,0 +1,11 @@
+{
+  "name": "rodbot-view-diagram",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "node scripts/build.mjs",
+    "test": "node --test \"test/unidade/**/*.test.mjs\"",
+    "comparar-bundle": "node scripts/comparar-bundle.mjs",
+    "verificar": "npm test"
+  }
+}
