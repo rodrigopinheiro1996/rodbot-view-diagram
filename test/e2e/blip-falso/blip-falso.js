@@ -9,7 +9,7 @@
  *   SUPOSIÇÕES da spec (§11), configuráveis: S1 mover tira da lista; S2 pausado pode ser movido/transferido;
  *     S3 pausado não recebe mensagem (campo de texto desabilitado).
  *
- * API para os testes: window.blipFalso.{ reiniciar(config), estado(), chegarChat(nome), eventos }.
+ * API para os testes: window.blipFalso.{ reiniciar(config), estado(), chegarChat(nome), adicionarFila(n) }.
  */
 (() => {
   // ───────────────────────── componentes bds-* (só o necessário, com Shadow DOM como no Blip)
@@ -369,6 +369,7 @@
     estado: () => JSON.parse(JSON.stringify({
       tickets, filaRestante, abertoId, naLista: naLista().map((t) => t.id), eventos,
     })),
+    adicionarFila: (n = 1) => { filaRestante += n; registrar('fila', { n }); renderizar(); return filaRestante; },
     chegarChat: (nome) => { const t = novoTicket(nome || `Cliente Novo ${proxId}`); registrar('chegou', { id: t.id }); renderizar(); return t.id; },
   };
   reiniciar();

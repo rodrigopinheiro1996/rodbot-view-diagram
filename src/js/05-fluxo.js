@@ -141,7 +141,7 @@
     }
     if (acao.tipo === 'oposto') {
       await fecharMenuTicket(wrap, alvo);
-      return { ok: true, nota: 'já estava fora de espera' };
+      return { ok: true, semEfeito: true, nota: 'não estava em espera' };
     }
     const innerBtn = acao.el.shadowRoot?.querySelector('button.menuaction__button, button') || acao.el;
     await sleep(150);
@@ -158,6 +158,7 @@
 
   async function fluxoPausar(id) {
     const r = await autoTentarPausa(id);
+    if (r.ok && r.nota === 'já estava em espera') return { ok: true, semEfeito: true, nota: r.nota };
     if (r.ok) await pausaAcao(CONFIG.delayAcoes);
     return r;
   }

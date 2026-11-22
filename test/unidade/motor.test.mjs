@@ -345,3 +345,10 @@ test('resultado "pulado" do adaptador (ex.: ticket em espera lido pelo menu) nã
   assert.equal(r.totais.enviados, 1);
   assert.ok(log.includes('⏭️ #2: em espera: não recebe mensagem.'), log.join('\n'));
 });
+
+test('⏳: "semEfeito" do adaptador (já estava no estado) não conta no resumo', async () => {
+  const blip = criarBlip({ naTela: ['1', '2'], pausados: ['1', '2'] });
+  blip.acoes.despausar = async (id) => (id === '2' ? { ok: true, semEfeito: true, nota: 'não estava em espera' } : { ok: true });
+  const r = await m.executarFluxo(fluxo([D]), criarDeps(blip).deps);
+  assert.equal(r.totais.despausados, 1);
+});

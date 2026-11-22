@@ -543,3 +543,8 @@ sem revisão prévia e listada no relatório final.
   `fecharPainel` apaga o gancho. O motor entende `pulado` (ex.: ticket em espera, lido pelo menu antes de enviar).
   11 pausas novas em `pausas.md` (79 no total, 22 entram). A prova "só mudou `sleep(`" da Tarefa 7 saiu (histórico).
   Enquanto o BM não mandar o HTML de um card pausado, o envio em ⏳ lê o menu de cada ticket antes (≈1 s a mais por ticket).
+- Tarefa 12: feita. `test/e2e/motor-blip-falso.test.mjs` (9 cenários: Piloto clássico, Despausar, loop com ticket
+  novo, 🆕, 👥, Transferir, falha geral, velocidade 2.0 × 1.0 medindo cada `setTimeout`, pausa entre ciclos).
+  Ajuste no motor: `semEfeito` (já estava no estado pedido) não conta e, em 🆕/👥, o chat segue; `pulado` (envio a
+  ticket em espera) encerra o chat. Blip falso ganhou `adicionarFila(n)`. Etapa 4 (motor) concluída; `npm run
+  verificar` ≈ 3 min.

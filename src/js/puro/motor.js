@@ -12,7 +12,8 @@
  *     listarTickets() → [{ id | null, pausado: true | false | null }]
  *     enviar(id, { mensagem, modo, tag, abrirProximo }) · pausar(id) · despausar(id)
  *     mover(id, pasta) · transferir(id, atendente)   → { ok, motivo?, nota?, pulado? }
- *       pulado: ok mas nada foi feito (ex.: ticket em espera não recebe mensagem); não conta no resumo
+ *       pulado: ok mas nada foi feito (ex.: ticket em espera não recebe mensagem); não conta; em 🆕/👥 encerra o chat
+ *       semEfeito: o ticket já estava no estado pedido (ex.: já em espera); não conta e o chat segue
  *     definirVelocidade(v)
  *     🆕/👥: novosChats() → [id] (chats que caíram desde a última leitura; o observador do Auto por baixo)
  *            entreChats() (pausa de ritmo AUTO_T.entreTickets) · memoria24h.{ tem(id), gravar(id) }
@@ -121,7 +122,7 @@ async function motorPassoEmLote(passo, indice, ctx) {
       log('⚠️ #' + t.id + ': ' + ((r && r.motivo) || 'falhou') + '. Pulado.');
       continue;
     }
-    if (r.pulado) {
+    if (r.pulado || r.semEfeito) {
       log('⏭️ #' + t.id + ': ' + (r.nota || 'pulado') + '.');
       continue;
     }
@@ -293,6 +294,11 @@ async function motorPassosNoChat(id, fluxo, ctx) {
       marcar(i + 1, 'feito', '#' + id);
       ctx.passoAtual = 0;
       return 'pulado';
+    }
+    if (r.semEfeito) {
+      log('⏭️ Chat #' + id + ': ' + (r.nota || 'sem efeito') + '.');
+      marcar(i + 1, 'feito', '#' + id);
+      continue;
     }
     if (r.nota) log('ℹ️ #' + id + ': ' + r.nota + '.');
     motorContar(tc, passo, true);
