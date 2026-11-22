@@ -514,3 +514,4 @@ sem revisão prévia e listada no relatório final.
   Fora do bundle, como a Tarefa 2.
 - Tarefa 4: feita (`loopEfetivo` com `habilitado`, `disponibilidade`, erros globais `sem-para-quem`/`fluxo-vazio`/`muitos-passos`). Fora do bundle.
 - Tarefa 5: feita (`validarCampos`, `podeIniciar`). Fora do bundle. Etapa 2 (validador) concluída.
+- Tarefa 6: feita (`pausa`, `normalizarVelocidade`, `velocidadeDoPasso`, `seloVelocidade`, `pausaEntreCiclos`, `normalizarPausaCiclos`). Fora do bundle; aceita vírgula decimal ("1,5").
