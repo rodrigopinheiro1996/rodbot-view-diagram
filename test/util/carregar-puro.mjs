@@ -4,8 +4,10 @@ import { join } from 'node:path';
 import vm from 'node:vm';
 import { RAIZ } from '../../scripts/build.mjs';
 
+// O 1º argumento pode ser um objeto com globais falsas (ex.: { sleep }) que o arquivo usa.
 export function carregarPuro(...arquivos) {
-  const ctx = vm.createContext({});
+  const globais = typeof arquivos[0] === 'object' ? arquivos.shift() : {};
+  const ctx = vm.createContext({ ...globais });
   for (const a of arquivos) {
     const caminho = join(RAIZ, 'src/js/puro', a);
     vm.runInContext(readFileSync(caminho, 'utf8'), ctx, { filename: caminho });

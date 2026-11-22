@@ -515,3 +515,8 @@ sem revisão prévia e listada no relatório final.
 - Tarefa 4: feita (`loopEfetivo` com `habilitado`, `disponibilidade`, erros globais `sem-para-quem`/`fluxo-vazio`/`muitos-passos`). Fora do bundle.
 - Tarefa 5: feita (`validarCampos`, `podeIniciar`). Fora do bundle. Etapa 2 (validador) concluída.
 - Tarefa 6: feita (`pausa`, `normalizarVelocidade`, `velocidadeDoPasso`, `seloVelocidade`, `pausaEntreCiclos`, `normalizarPausaCiclos`). Fora do bundle; aceita vírgula decimal ("1,5").
+- Tarefa 7: feita. 68 pausas classificadas em `docs/plano/pausas.md` (16 entram, 52 não). `velocidade.js` e `pausas.js`
+  entram no bundle (depois de `01-base.js`); o validador continua fora. Saíram `scripts/extrair.mjs` e a prova da
+  Tarefa 1 (fica no histórico, `46f3091`); no lugar há `build.test.mjs` (permanente) e a prova "só mudou
+  `sleep(` → `pausaAcao(`" contra o `3ca5940`, que vale até a Tarefa 11. Nos testes de tela, o Playwright é
+  carregado com `createRequire` (o import ESM direto não o acha).

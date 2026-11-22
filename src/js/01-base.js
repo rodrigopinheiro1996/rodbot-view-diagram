@@ -1035,7 +1035,7 @@
     await preencherCampoMensagem(input, texto);
     dispararEnvioEnter(input);
     log("✅ Mensagem enviada!");
-    await sleep(CONFIG.delayAcoes);
+    await pausaAcao(CONFIG.delayAcoes);
   }
   // Preenche o #text-input como a aplicação espera (setter nativo + eventos input/change).
   async function preencherCampoMensagem(input, texto) {
@@ -1071,7 +1071,7 @@
       return document.querySelector('.tags-container div.pointer');
     });
     clickUnico(addTagDiv);
-    await sleep(CONFIG.delayAcoes);
+    await pausaAcao(CONFIG.delayAcoes);
     const selectChips = await waitFor(() => document.querySelector('bds-select-chips'));
     if (!selectChips.shadowRoot) throw new Error("ShadowRoot indisponível");
     log(`🔍 Digitando '${tagAtual}'...`);
@@ -1111,7 +1111,7 @@
     });
     clickUnico(tagOption);
     log("✅ Tag selecionada!");
-    await sleep(CONFIG.delayAcoes);
+    await pausaAcao(CONFIG.delayAcoes);
   }
   async function passo3_finalizar() {
     log("🔵 Clicando em 'Finalizar'...");
@@ -1148,7 +1148,7 @@
     log("✅ Ticket finalizado!");
     await sleep(1000);
     await fecharAvisosPendentes();
-    await sleep(CONFIG.delayTrocaTicket);
+    await pausaAcao(CONFIG.delayTrocaTicket);
   }
   async function passo5_proximoFila() {
     log("👤 Mudando para o próximo da fila...");
@@ -1160,7 +1160,7 @@
       log(`✅ Cliente selecionado! (${items.length} restantes)`);
       log("⏳ Aguardando novo chat carregar...");
       await waitFor(() => document.querySelector('#text-input'), 8000);
-      await sleep(CONFIG.delayAcoes);
+      await pausaAcao(CONFIG.delayAcoes);
       return true;
     }
     log("🏁 Nenhum cliente restante na fila.");
@@ -1490,7 +1490,7 @@
           if (aoErro) await aoErro(alvo, err);
           await fecharAvisosPendentes();
         }
-        await sleep(350);
+        await pausaAcao(350);
       }
       log(`🏁 Finalizado: ${alterados} ${verboPassado}(s)${pulados ? `, ${pulados} pulado(s)` : ''}.`);
     } finally {
@@ -1704,7 +1704,7 @@
         }
 
         // Aguarda a fila atualizar (o ticket sair e o próximo tomar o lugar no topo!)
-        await sleep(CONFIG.delayAcoes);
+        await pausaAcao(CONFIG.delayAcoes);
       }
 
       log(`🏁 Finalizado: ${alterados} movido(s) para "${pasta}"${pulados ? `, ${pulados} pulado(s)` : ''}.`);
@@ -2007,7 +2007,7 @@
           break;
         }
 
-        await sleep(500);
+        await pausaAcao(500);
       }
     } catch (err) {
       log(`❌ Erro no atendimento automático: ${err.message}`);

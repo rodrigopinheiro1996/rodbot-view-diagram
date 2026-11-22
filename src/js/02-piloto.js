@@ -95,7 +95,7 @@
         break;
       }
 
-      await sleep(500);
+      await pausaAcao(500);
     }
 
     atualizarStepper(1, 'done', 'Fila zerada (0)');
@@ -170,12 +170,12 @@
         await fecharAvisosPendentes();
       }
 
-      await sleep(CONFIG.delayAcoes);
+      await pausaAcao(CONFIG.delayAcoes);
     }
 
     atualizarStepper(2, 'done', `Enviados (${enviados})`);
     log(`✅ [Etapa 2/4 Concluída] Mensagens enviadas: ${enviados}.`);
-    await sleep(600);
+    await pausaAcao(600);
     return true;
   }
 
@@ -261,12 +261,12 @@
         await fecharMenuTicket(wrap, alvo);
       }
 
-      await sleep(CONFIG.delayAcoes);
+      await pausaAcao(CONFIG.delayAcoes);
     }
 
     atualizarStepper(3, 'done', `Pausados (${pausados})`);
     log(`✅ [Etapa 3/4 Concluída] ${pausados} ticket(s) pausado(s)${jaPausados ? `, ${jaPausados} já estavam pausados` : ''}.`);
-    await sleep(600);
+    await pausaAcao(600);
     return true;
   }
 
@@ -351,12 +351,12 @@
         await fecharAvisosPendentes();
       }
 
-      await sleep(CONFIG.delayAcoes);
+      await pausaAcao(CONFIG.delayAcoes);
     }
 
     atualizarStepper(4, 'done', `Movidos (${alterados})`);
     log(`✅ [Etapa 4/4 Concluída] ${alterados} ticket(s) movido(s) para "${pasta}"${pulados ? `, ${pulados} pulado(s)` : ''}.`);
-    await sleep(600);
+    await pausaAcao(600);
     return true;
   }
 

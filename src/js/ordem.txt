@@ -1,4 +1,6 @@
 01-base.js
+puro/velocidade.js
+puro/pausas.js
 02-piloto.js
 03-auto.js
 04-transferir-e-fechar.js

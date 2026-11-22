@@ -751,7 +751,7 @@
           auto.atual = null;
           autoRender();
         }
-        await sleep(AUTO_T.entreTickets);
+        await pausaAcao(AUTO_T.entreTickets);
       }
     } finally {
       auto.workerAtivo = false;
