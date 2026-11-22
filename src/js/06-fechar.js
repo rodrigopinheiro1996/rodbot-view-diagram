@@ -14,6 +14,7 @@
     window.removeEventListener('rf-bm-theme-change', onSyncTheme);
     p.remove();
     styleEl.remove();
+    if (window.__rodBot) delete window.__rodBot;
     if (window.__rodBotCleanup === fecharPainel) {
       delete window.__rodBotCleanup;
     }

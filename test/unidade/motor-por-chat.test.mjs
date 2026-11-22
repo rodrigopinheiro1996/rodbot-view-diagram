@@ -215,3 +215,12 @@ test('Parar no meio de um chat: os passos seguintes desse chat não rodam', asyn
   assert.equal(r.status, 'parado');
   assert.deepEqual(semEntre(blip).map((c) => c[0]), ['enviar']);
 });
+
+test('🆕: passo "pulado" encerra aquele chat sem falha e sem os passos seguintes', async () => {
+  const blip = criarBlip({ chegadas: [['101']] });
+  blip.acoes.enviar = async () => ({ ok: true, pulado: true, nota: 'em espera: não recebe mensagem' });
+  const r = await m.executarFluxo(fluxo('caindo', [E, P]), criarDeps(blip).deps);
+  assert.equal(r.totais.falhas, 0);
+  assert.equal(r.totais.enviados, 0);
+  assert.ok(!blip.chamadas.some((c) => c[0] === 'pausar'));
+});

@@ -9,7 +9,7 @@ aparecer depois de um clique, polling, recuo depois de erro). **Na dúvida, não
   valor**. A coluna de linha é a da classificação (pode andar quando o código mudar).
 - Com velocidade 1.0 todos os valores são iguais aos de hoje.
 
-Total: **68** pausas; **16** entram, **52** não entram.
+Total: **79** pausas; **22** entram, **57** não entram (linhas 69+ são do fluxo novo, Tarefa 11).
 
 | # | arquivo:linha | função | valor | decisão | motivo |
 |---|---|---|---|---|---|
@@ -81,3 +81,14 @@ Total: **68** pausas; **16** entram, **52** não entram.
 | 66 | `04-transferir.js:97` | `tPrimeiroTicket` | `TRANSF_T.leituraVazia` | não entra (§8: sempre de fora) | `TRANSF_T.leituraVazia` (polling), §8. |
 | 67 | `04-transferir.js:187` | `tDigitar` | `atraso` | não entra (§8: sempre de fora) | Atraso de digitação do Transferir (§8). |
 | 68 | `04-transferir.js:197` | `tDigitar` | `atraso` | não entra (§8: sempre de fora) | Atraso de digitação do Transferir (§8). |
+| 69 | `05-fluxo.js:20` | `fluxoLerEspera` | `120` | não entra (espera de UI) | Espera o hover revelar o botão do menu (igual ao Auto). |
+| 70 | `05-fluxo.js:52` | `fluxoAtender` | `250` | não entra (polling) | Leitura repetida enquanto o botão Atender está desabilitado. |
+| 71 | `05-fluxo.js:63` | `fluxoAtender` | `500` | entra (ritmo) | Intervalo do Atender, 500 ms (§8: sempre entra). |
+| 72 | `05-fluxo.js:116` | `fluxoEnviar` | `CONFIG.delayAcoes` | entra (ritmo) | `delayAcoes` (§8: sempre entra). Ritmo depois de enviar (e finalizar). |
+| 73 | `05-fluxo.js:129` | `fluxoDespausar` | `120` | não entra (espera de UI) | Espera o hover revelar o botão do menu. |
+| 74 | `05-fluxo.js:147` | `fluxoDespausar` | `150` | não entra (espera de UI) | Estabilização: a opção do menu acabou de aparecer (na dúvida, não entra). |
+| 75 | `05-fluxo.js:149` | `fluxoDespausar` | `550` | não entra (espera de UI) | Espera o Blip aplicar a retomada antes de fechar avisos. |
+| 76 | `05-fluxo.js:153` | `fluxoDespausar` | `CONFIG.delayAcoes` | entra (ritmo) | `delayAcoes` (§8: sempre entra). Ritmo entre tickets despausados. |
+| 77 | `05-fluxo.js:161` | `fluxoPausar` | `CONFIG.delayAcoes` | entra (ritmo) | `delayAcoes` (§8: sempre entra). Ritmo entre tickets pausados. |
+| 78 | `05-fluxo.js:170` | `fluxoMover` | `CONFIG.delayAcoes` | entra (ritmo) | `delayAcoes` (§8: sempre entra). Ritmo entre tickets movidos. |
+| 79 | `05-fluxo.js:188` | `fluxoEntreChats` | `AUTO_T.entreTickets` | entra (ritmo) | `AUTO_T.entreTickets` (§8: sempre entra). Ritmo entre um chat e outro (🆕/👥). |

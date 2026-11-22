@@ -1,14 +1,12 @@
 // Tarefa 7: a velocidade só muda as pausas de RITMO (spec §8), classificadas uma a uma em docs/plano/pausas.md.
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { execFileSync } from 'node:child_process';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { RAIZ } from '../../scripts/build.mjs';
-import { decodificar } from '../../scripts/codec.mjs';
 import { carregarPuro } from '../util/carregar-puro.mjs';
 
-const TRECHOS = ['01-base.js', '02-piloto.js', '03-auto.js', '04-transferir.js', '06-fechar.js'];
+const TRECHOS = ['01-base.js', '02-piloto.js', '03-auto.js', '04-transferir.js', '05-fluxo.js', '06-fechar.js'];
 const ler = (n) => readFileSync(join(RAIZ, 'src/js', n), 'utf8');
 
 // chamadas sleep(…)/pausaAcao(…) no código: arquivo + função de nível superior + valor
@@ -83,8 +81,8 @@ test('o que o §8 manda incluir está como "entra"', () => {
     if (/^CONFIG\.delayAcoes$|^AUTO_T\.entreTickets$/.test(t.valor)) assert.match(t.decisao, /^entra/, chave(t));
   }
   const atender = linhasDaTabela().filter((t) => t.valor === '500' &&
-    (t.funcao === 'executarAtendimentoAutomatico' || t.funcao === 'pilotoEtapa1_PuxarFila'));
-  assert.equal(atender.length, 2);
+    ['executarAtendimentoAutomatico', 'pilotoEtapa1_PuxarFila', 'fluxoAtender'].includes(t.funcao));
+  assert.equal(atender.length, 3);
   for (const t of atender) assert.match(t.decisao, /^entra/, 'intervalo do Atender');
 });
 
@@ -103,17 +101,5 @@ test('pausaAcao divide pela velocidade atual, com piso de 50%; 1.0 = hoje', () =
   assert.deepEqual(chamadas, [1200, 600, 300, 250, 600, 700]);
 });
 
-test('prova: o código antigo só mudou sleep( → pausaAcao( (com velocidade 1.0 tudo fica igual a hoje)', () => {
-  // vale até o código antigo mudar de propósito (Tarefa 11); depois disso esta prova fica no histórico
-  const html = execFileSync('git', ['show', '3ca5940:rodbot-final.html'], { cwd: RAIZ, maxBuffer: 1 << 28 }).toString();
-  const i = html.indexOf('href="javascript:') + 17;
-  const original = decodificar(html.slice(i, html.indexOf('"', i)));
-  const atual = TRECHOS.map(ler).join('');
-  assert.equal(atual.replace(/\bpausaAcao\(/g, 'sleep('), original);
-  const { pausa } = carregarPuro('velocidade.js');
-  for (const t of linhasDaTabela().filter((x) => x.decisao.startsWith('entra'))) {
-    const ms = { 'CONFIG.delayAcoes': 1200, 'CONFIG.delayTrocaTicket': 700, 'AUTO_T.entreTickets': 600 }[t.valor] ?? Number(t.valor);
-    assert.ok(Number.isFinite(ms), chave(t));
-    assert.equal(pausa(ms, 1), ms, chave(t));
-  }
-});
+// A prova "o código antigo só mudou sleep( → pausaAcao(" (Tarefa 7) ficou no histórico (commit 3d5d525):
+// a partir da Tarefa 11 o código antigo muda de propósito.

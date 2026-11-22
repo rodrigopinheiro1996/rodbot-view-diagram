@@ -1060,8 +1060,9 @@
     log("📝 Enviando mensagem...");
     await enviarTextoNoChat(mensagemAtual);
   }
-  async function passo2_tag() {
-    const tagAtual = tagEl.value.trim();
+  async function passo2_tag(tagParam) {
+    // o fluxo passa a tag do passo; o painel antigo continua lendo a caixa da tag
+    const tagAtual = (tagParam !== undefined ? String(tagParam) : tagEl.value).trim();
     if (!tagAtual) throw new Error("A caixa da tag está vazia.");
     CONFIG.tagBusca = tagAtual;
     log("🏷️ Abrindo 'Adicionar tags'...");

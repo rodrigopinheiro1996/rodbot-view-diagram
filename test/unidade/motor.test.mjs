@@ -336,3 +336,12 @@ test('fluxo inválido não executa nada', async () => {
   const r2 = await m.executarFluxo(fluxo([E('')]), criarDeps(blip).deps);
   assert.equal(r2.status, 'invalido', 'campo vazio também bloqueia');
 });
+
+test('resultado "pulado" do adaptador (ex.: ticket em espera lido pelo menu) não conta como enviado', async () => {
+  const blip = criarBlip({ naTela: ['1', '2'] });
+  blip.acoes.enviar = async (id) => (id === '2' ? { ok: true, pulado: true, nota: 'em espera: não recebe mensagem' } : { ok: true });
+  const { deps, log } = criarDeps(blip);
+  const r = await m.executarFluxo(fluxo([E()]), deps);
+  assert.equal(r.totais.enviados, 1);
+  assert.ok(log.includes('⏭️ #2: em espera: não recebe mensagem.'), log.join('\n'));
+});

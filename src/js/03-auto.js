@@ -87,7 +87,8 @@
     obs: { fila: null, chip: null, typo: null, filtro: null },
     alvos: { fila: null, chip: null, typo: null, filtro: null },
     timerScan: null,
-    timerRecon: null
+    timerRecon: null,
+    consumidor: null        // fluxo 🆕/👥: recebe os ids novos no lugar do worker do Auto
   };
 
   function autoLerContador() {
@@ -236,7 +237,8 @@
   function autoMotivoAbsorcao() {
     if (autoFiltroAberto()) return 'filtro aberto';
     if (Date.now() < auto.supressaoAte) return auto.motivoSupressao;
-    if (rodando && modoAtual !== 'claim') return 'outra automação do BM em execução';
+    // o próprio fluxo 🆕/👥 que consome o observador não é "outra automação" (seus cliques não revelam chats antigos)
+    if (rodando && modoAtual !== 'claim' && !(auto.consumidor && modoAtual === 'fluxo')) return 'outra automação do BM em execução';
     return '';
   }
 
@@ -304,6 +306,11 @@
         auto.contador++;
         autoSalvarContador();
         autoGravarTicket(id, { contado: true });
+        if (auto.consumidor) {
+          log(`🆕 Novo chat #${id} (total do BM: ${auto.contador}).`);
+          auto.consumidor(id);
+          continue;
+        }
         autoRegistrar(id, 'pendente', 'novo chat detectado');
         if (!auto.fila.some(it => it.id === id && !it.soPausa)) auto.fila.push({ id, soPausa: false });
         log(`🆕 Novo chat #${id} (total do BM: ${auto.contador}).`);
@@ -760,15 +767,17 @@
     }
   }
 
-  function autoAtivar() {
+  // consumidor: usado pelo fluxo 🆕/👥 (só o observador; quem processa é o motor, não o worker do Auto).
+  function autoAtivar(consumidor = null) {
     if (auto.ativo || auto.destruido) return;
-    if (!autoLerMensagem()) {
+    if (!consumidor && !autoLerMensagem()) {
       log('⚠️ Digite a mensagem automática antes de ativar.');
       autoMsgEl?.focus();
       autoRender();
       return;
     }
     auto.ativo = true;
+    auto.consumidor = consumidor;
     auto.gen++;
     auto.baselinePronta = false;
     auto.suspensa = '';
@@ -782,13 +791,15 @@
       autoGarantirObservers();
       autoReexaminar();
     }, AUTO_T.reconciliar);
-    log('▶ Resposta automática ativada. Registrando os chats atuais...');
+    log(consumidor ? '👁️ Vigiando chats novos. Registrando os chats atuais...' : '▶ Resposta automática ativada. Registrando os chats atuais...');
     autoReexaminar();
     autoRender();
   }
   function autoDesativar() {
     if (!auto.ativo) return;
+    const eraFluxo = !!auto.consumidor;
     auto.ativo = false;
+    auto.consumidor = null;
     auto.gen++;
     for (const [tipo, fn, opt] of AUTO_EVENTOS) document.removeEventListener(tipo, fn, opt);
     clearInterval(auto.timerRecon);
@@ -804,7 +815,7 @@
     }
     auto.suspensa = '';
     auto.aguardando = '';
-    log(`⏹ Resposta automática desativada. ${descartados.length} pendente(s) descartado(s).`);
+    log(eraFluxo ? '⏹ Vigia de chats novos encerrada.' : `⏹ Resposta automática desativada. ${descartados.length} pendente(s) descartado(s).`);
     if (auto.atual && !auto.atual.soPausa) {
       log(`ℹ️ Chat #${auto.atual.id} em andamento: se a mensagem já saiu, a pausa será concluída; senão, nada será enviado.`);
     }
@@ -919,7 +930,10 @@
     autoMsgEl.dispatchEvent(new Event('input', { bubbles: true }));
     log('📋 Mensagem padrão carregada na resposta automática.');
   };
-  autoToggleBtn.onclick = () => (auto.ativo ? autoDesativar() : autoAtivar());
+  autoToggleBtn.onclick = () => {
+    if (auto.consumidor) return log('⚠️ O fluxo está vigiando os chats novos; pare o fluxo antes.');
+    return auto.ativo ? autoDesativar() : autoAtivar();
+  };
   autoResumeBtn.onclick = () => autoRetomar();
   autoRetryPauseBtn.onclick = () => autoRepetirPausas();
   autoResetBtn.onclick = () => {

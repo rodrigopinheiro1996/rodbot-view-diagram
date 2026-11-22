@@ -536,3 +536,10 @@ sem revisão prévia e listada no relatório final.
   `entreChats()`, `memoria24h.{tem,gravar}`. O id vai para as 24 h **antes** do 1º passo; falha num passo encerra
   aquele chat (os seguintes não rodam) e segue para o próximo; 👥 faz o lote passo a passo como o ⏳ e depois vigia;
   vigia lê chats novos a cada 500 ms (não muda com a velocidade); trava "Já há um fluxo rodando" vale para os 3 modos.
+- Tarefa 11: feita. `refactor(mover)` separou `04-transferir.js` de `06-fechar.js`; `05-fluxo.js` tem os adaptadores
+  por ticket e o gancho `window.__rodBot` (só com `__rodBotTeste`). Mudanças no código antigo, todas mantendo o
+  comportamento do painel antigo: `passo2_tag(tag)` aceita parâmetro; o Auto ganhou o modo "consumidor" (o fluxo usa
+  só o observador e o contador; o worker fica parado) e não descarta chats novos enquanto o próprio fluxo roda;
+  `fecharPainel` apaga o gancho. O motor entende `pulado` (ex.: ticket em espera, lido pelo menu antes de enviar).
+  11 pausas novas em `pausas.md` (79 no total, 22 entram). A prova "só mudou `sleep(`" da Tarefa 7 saiu (histórico).
+  Enquanto o BM não mandar o HTML de um card pausado, o envio em ⏳ lê o menu de cada ticket antes (≈1 s a mais por ticket).

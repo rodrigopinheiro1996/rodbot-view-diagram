@@ -4,4 +4,8 @@ puro/pausas.js
 02-piloto.js
 03-auto.js
 04-transferir.js
+puro/validar-fluxo.js
+puro/validar-campos.js
+puro/motor.js
+05-fluxo.js
 06-fechar.js
