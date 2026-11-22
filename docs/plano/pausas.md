@@ -77,7 +77,7 @@ Total: **68** pausas; **16** entram, **52** não entram.
 | 62 | `03-auto.js:727` | `autoWorker` | `AUTO_T.espera` | não entra (§8: sempre de fora) | `AUTO_T.espera`: espera de segurança (outra automação rodando), §8. |
 | 63 | `03-auto.js:733` | `autoWorker` | `AUTO_T.espera` | não entra (§8: sempre de fora) | `AUTO_T.espera`: espera de segurança (rascunho no chat), §8. |
 | 64 | `03-auto.js:754` | `autoWorker` | `AUTO_T.entreTickets` | entra (ritmo) | `AUTO_T.entreTickets` (§8: sempre entra). Ritmo entre um chat e outro. |
-| 65 | `04-transferir-e-fechar.js:57` | `tEsperar` | `150` | não entra (polling) | Leitura repetida de `tEsperar` (prazos de `TRANSF_T`). |
-| 66 | `04-transferir-e-fechar.js:97` | `tPrimeiroTicket` | `TRANSF_T.leituraVazia` | não entra (§8: sempre de fora) | `TRANSF_T.leituraVazia` (polling), §8. |
-| 67 | `04-transferir-e-fechar.js:187` | `tDigitar` | `atraso` | não entra (§8: sempre de fora) | Atraso de digitação do Transferir (§8). |
-| 68 | `04-transferir-e-fechar.js:197` | `tDigitar` | `atraso` | não entra (§8: sempre de fora) | Atraso de digitação do Transferir (§8). |
+| 65 | `04-transferir.js:57` | `tEsperar` | `150` | não entra (polling) | Leitura repetida de `tEsperar` (prazos de `TRANSF_T`). |
+| 66 | `04-transferir.js:97` | `tPrimeiroTicket` | `TRANSF_T.leituraVazia` | não entra (§8: sempre de fora) | `TRANSF_T.leituraVazia` (polling), §8. |
+| 67 | `04-transferir.js:187` | `tDigitar` | `atraso` | não entra (§8: sempre de fora) | Atraso de digitação do Transferir (§8). |
+| 68 | `04-transferir.js:197` | `tDigitar` | `atraso` | não entra (§8: sempre de fora) | Atraso de digitação do Transferir (§8). |
