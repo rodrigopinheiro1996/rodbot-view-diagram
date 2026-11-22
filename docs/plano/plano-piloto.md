@@ -526,3 +526,9 @@ sem revisão prévia e listada no relatório final.
   Perguntas pendentes ao BM (não bloqueiam a Tarefa 9, que é pura): outerHTML de um **card pausado** (para contar
   "Pausados: N" sem abrir menus) e de um **card recém-puxado pelo Atender** (entra no fim ou no topo da lista?).
   Resposta do BM: o puxado entra no **topo** (página falsa ajustada).
+- Tarefa 9: feita. `src/js/puro/motor.js` (`executarFluxo(fluxo, deps)`, `ErroGeral`), fora do bundle até a Tarefa 11.
+  Decisões de implementação: as ações são **por ticket** (`enviar(id)`, `pausar(id)`…), e o motor decide quem pular;
+  memória da execução = um envio por ticket na execução inteira + cada passo age uma vez por ticket (assim `[P,D,P]`
+  funciona e o loop não repete); "já estava em espera" aparece **uma vez** por ticket pausado por outra pessoa (não
+  a cada ciclo para os que o próprio fluxo pausou); falha de item pode vir como `{ok:false}` ou exceção comum;
+  card sem número conta o máximo do ciclo. A Tarefa 11 adapta as funções reais a essa interface por ticket.
