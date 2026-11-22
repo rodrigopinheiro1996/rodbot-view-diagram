@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { carregarPuro } from '../util/carregar-puro.mjs';
 
-const { validarFluxo, erroDoModal, textoModal } = carregarPuro('validar-fluxo.js');
+const { validarFluxo, erroDoModal, textoModal, loopEfetivo, disponibilidade } = carregarPuro('validar-fluxo.js');
 
 // Notação do plano: A=Atender, E=Só enviar, EF=Enviar+Finalizar, P=Pausar, D=Despausar, M=Mover, T=Transferir
 const PASSO = {
@@ -239,4 +239,98 @@ test('textoModal: regras 2 e 5', () => {
   const p5 = passosDe(['P', 'P']);
   const t5 = textoModal(erroDoModal(plano(validarFluxo({ paraQuem: 'aguardando', passos: p5 })).erros), p5);
   assert.equal(t5.linha, 'O passo 2 · Pausar repete o passo 1 · Pausar.');
+});
+
+// ───────────── Tarefa 4: loop efetivo, disponibilidade por modo, limite de passos, "Para quem?"
+
+const loop = (modo, seq, loopEscolha) =>
+  plano(loopEfetivo({ paraQuem: MODO[modo], passos: passosDe(seq), loopEscolha }));
+
+test('loop efetivo (§7): escolha E Atender em 1º', () => {
+  assert.deepEqual(loop('⏳', ['A', 'E', 'P', 'M'], true), { efetivo: true, habilitado: true, motivo: null });
+  assert.deepEqual(loop('⏳', ['E', 'P', 'M'], true), {
+    efetivo: false, habilitado: false, motivo: 'O loop precisa de Atender em 1º',
+  });
+});
+
+test('loop: sem Atender em 1º o interruptor fica desabilitado com o motivo, qualquer que seja a escolha', () => {
+  assert.deepEqual(loop('⏳', ['E'], false), {
+    efetivo: false, habilitado: false, motivo: 'O loop precisa de Atender em 1º',
+  });
+  assert.equal(loop('⏳', ['E', 'A', 'P'], true).efetivo, false, 'Atender no meio não conta');
+  assert.equal(loop('⏳', [], true).efetivo, false);
+});
+
+test('loop: o usuário desligou (Atender em 1º) → efetivo false sem motivo; ligar de novo volta ao que escolheu', () => {
+  assert.deepEqual(loop('⏳', ['A', 'E', 'P'], false), { efetivo: false, habilitado: true, motivo: null });
+  assert.equal(loop('⏳', ['A', 'E', 'P'], true).efetivo, true);
+});
+
+test('regra 9: o validador não simula a volta do loop ([A,E,P] com loop é válido)', () => {
+  assert.deepEqual(val('⏳', ['A', 'E', 'P']), { ok: true });
+});
+
+test('loop em 🆕/👥: não existe (o modo já vigia até Parar); a escolha é ignorada, sem erro', () => {
+  for (const modo of ['🆕', '👥']) {
+    assert.deepEqual(loop(modo, ['E', 'P'], true), {
+      efetivo: false, habilitado: false, motivo: 'Este modo já vigia até Parar',
+    });
+    assert.deepEqual(val(modo, ['E', 'P']), { ok: true });
+  }
+});
+
+test('loop sem "Para quem?" escolhido', () => {
+  const r = plano(loopEfetivo({ paraQuem: null, passos: passosDe(['A']), loopEscolha: true }));
+  assert.equal(r.efetivo, false);
+  assert.equal(r.motivo, 'Escolha para quem primeiro');
+});
+
+test('disponibilidade por modo (§4): Atender e Despausar só em ⏳', () => {
+  assert.deepEqual(plano(disponibilidade('aguardando')), { atender: true, despausar: true });
+  assert.deepEqual(plano(disponibilidade('caindo')), { atender: false, despausar: false });
+  assert.deepEqual(plano(disponibilidade('ambos')), { atender: false, despausar: false });
+});
+
+test('disponibilidade: sem modo escolhido a paleta inteira fica desabilitada', () => {
+  assert.deepEqual(plano(disponibilidade(null)), {
+    atender: false, despausar: false, paleta: false, dica: 'Escolha para quem primeiro',
+  });
+  assert.equal(plano(disponibilidade('aguardando')).paleta, undefined);
+});
+
+test('passo indisponível em 🆕: erro com a dica "Também puxar a fila"', () => {
+  const r = val('🆕', ['A', 'E']);
+  const e = errosDo(r, 1)[0];
+  assert.equal(e.regra, 'indisponivel');
+  assert.match(e.dica, /Também puxar a fila/);
+});
+
+test('fluxo vazio, de 1 a 8 passos e "Para quem?" obrigatório', () => {
+  const vazio = val('⏳', []);
+  assert.equal(vazio.ok, false);
+  assert.deepEqual(vazio.erros.map((e) => e.regra), ['fluxo-vazio']);
+  assert.equal(vazio.erros[0].indice, null);
+
+  assert.deepEqual(val('⏳', ['A', 'E', 'P', 'D', 'A', 'E', 'P', 'M']), { ok: true }, '8 passos passam');
+  const nove = val('⏳', ['A', 'E', 'P', 'D', 'A', 'E', 'P', 'D', 'A']);
+  assert.deepEqual(nove.erros.map((e) => e.regra), ['muitos-passos']);
+  assert.equal(nove.erros[0].mensagem, 'Máximo de 8 passos');
+
+  const semModo = plano(validarFluxo({ paraQuem: null, passos: passosDe(['E']) }));
+  assert.equal(semModo.ok, false);
+  assert.deepEqual(semModo.erros.map((e) => e.regra), ['sem-para-quem']);
+  assert.equal(semModo.erros[0].mensagem, 'Escolha para quem o fluxo vale');
+  const modoInvalido = plano(validarFluxo({ paraQuem: 'xis', passos: passosDe(['E']) }));
+  assert.deepEqual(modoInvalido.erros.map((e) => e.regra), ['sem-para-quem']);
+});
+
+test('erros globais (sem passo) convivem com os de passo: o modal prefere o do passo; sozinhos, mostram o global', () => {
+  const misto = plano(validarFluxo({ paraQuem: null, passos: passosDe(['EF', 'P']) }));
+  assert.equal(erroDoModal(misto.erros).regra, 2);
+  const sozinho = val('⏳', []);
+  assert.equal(erroDoModal(sozinho.erros).regra, 'fluxo-vazio');
+  const t = textoModal(erroDoModal(sozinho.erros), []);
+  assert.equal(t.linha, 'Adicione pelo menos um passo.');
+  const t2 = textoModal(erroDoModal(plano(validarFluxo({ paraQuem: null, passos: passosDe(['E']) })).erros), passosDe(['E']));
+  assert.equal(t2.linha, 'Escolha para quem o fluxo vale.');
 });

@@ -18,12 +18,40 @@ function fluxoEstadoInicial(paraQuem) {
     : { tickets: 'ha', pausados: 'desconhecido' };
 }
 
+const FLUXO_MAX_PASSOS = 8;
+const FLUXO_MODOS = ['aguardando', 'caindo', 'ambos'];
+
+// O que a paleta oferece por modo (§4): Atender e Despausar só existem em ⏳.
+// Sem modo escolhido (fluxo novo "+"), a paleta inteira fica desabilitada.
+function disponibilidade(paraQuem) {
+  if (paraQuem === 'aguardando') return { atender: true, despausar: true };
+  if (paraQuem === 'caindo' || paraQuem === 'ambos') return { atender: false, despausar: false };
+  return { atender: false, despausar: false, paleta: false, dica: 'Escolha para quem primeiro' };
+}
+
 function fluxoPassoDisponivel(paraQuem, passo) {
-  const porChat = paraQuem === 'caindo' || paraQuem === 'ambos';
-  if (!porChat) return true;
-  if (passo.tipo === 'atender') return false;
-  if (passo.tipo === 'espera' && passo.modo === 'despausar') return false;
+  if (FLUXO_MODOS.indexOf(paraQuem) === -1) return true; // sem modo: o erro é 'sem-para-quem', não o do passo
+  const d = disponibilidade(paraQuem);
+  if (passo.tipo === 'atender') return d.atender;
+  if (passo.tipo === 'espera' && passo.modo === 'despausar') return d.despausar;
   return true;
+}
+
+// Loop (§7): efetivo = escolha do usuário E Atender em 1º (só ⏳). `habilitado` diz se o interruptor pode ser mexido.
+function loopEfetivo(fluxo) {
+  const paraQuem = fluxo && fluxo.paraQuem;
+  const passos = (fluxo && fluxo.passos) || [];
+  if (paraQuem === 'caindo' || paraQuem === 'ambos') {
+    return { efetivo: false, habilitado: false, motivo: 'Este modo já vigia até Parar' };
+  }
+  if (paraQuem !== 'aguardando') {
+    return { efetivo: false, habilitado: false, motivo: 'Escolha para quem primeiro' };
+  }
+  const temAtenderEm1o = passos.length > 0 && passos[0].tipo === 'atender';
+  if (!temAtenderEm1o) {
+    return { efetivo: false, habilitado: false, motivo: 'O loop precisa de Atender em 1º' };
+  }
+  return { efetivo: !!fluxo.loopEscolha, habilitado: true, motivo: null };
 }
 
 function fluxoErro(indice, regra, mensagem, extra) {
@@ -31,6 +59,10 @@ function fluxoErro(indice, regra, mensagem, extra) {
     { indice, regra, mensagem, correcao: { acao: 'remover', indice, texto: 'Remover passo ' + indice } },
     extra || {}
   );
+}
+
+function fluxoGlobal(regra, mensagem) {
+  return { indice: null, regra, mensagem };
 }
 
 function fluxoRotulo(passo) {
@@ -51,6 +83,15 @@ function validarFluxo(fluxo) {
   // rastros do que já aconteceu (índices base 1), só para apontar a causa
   const rastro = { pausou: null, despausou: null, enviou: null, esvaziou: null };
   const erros = [];
+
+  // erros globais (sem passo: indice null)
+  if (FLUXO_MODOS.indexOf(paraQuem) === -1) {
+    erros.push(fluxoGlobal('sem-para-quem', 'Escolha para quem o fluxo vale'));
+  }
+  if (passos.length === 0) erros.push(fluxoGlobal('fluxo-vazio', 'Adicione pelo menos um passo'));
+  if (passos.length > FLUXO_MAX_PASSOS) {
+    erros.push(fluxoGlobal('muitos-passos', 'Máximo de ' + FLUXO_MAX_PASSOS + ' passos'));
+  }
 
   passos.forEach((passo, i) => {
     const indice = i + 1;
@@ -145,14 +186,26 @@ const FLUXO_ORDEM_REGRAS = ['indisponivel', 2, 3, 4, 1, 5];
 
 function erroDoModal(erros) {
   if (!erros || !erros.length) return null;
-  const primeiro = Math.min.apply(null, erros.map((e) => e.indice));
-  const doPasso = erros.filter((e) => e.indice === primeiro);
+  const deIndice = erros.filter((e) => e.indice !== null && e.indice !== undefined);
+  if (!deIndice.length) return erros[0]; // só erros globais
+  const primeiro = Math.min.apply(null, deIndice.map((e) => e.indice));
+  const doPasso = deIndice.filter((e) => e.indice === primeiro);
   doPasso.sort((a, b) => FLUXO_ORDEM_REGRAS.indexOf(a.regra) - FLUXO_ORDEM_REGRAS.indexOf(b.regra));
   return doPasso[0];
 }
 
 // Texto do modal (layout-M): { titulo, linha, detalhe }. `passos` é o fluxo validado.
 function textoModal(erro, passos) {
+  if (erro.indice === null || erro.indice === undefined) {
+    const titulo = 'Esta ordem não é aceita';
+    if (erro.regra === 'sem-para-quem') {
+      return { titulo, linha: 'Escolha para quem o fluxo vale.', detalhe: 'Aguardando, Que vão cair ou Ambos.' };
+    }
+    if (erro.regra === 'fluxo-vazio') {
+      return { titulo, linha: 'Adicione pelo menos um passo.', detalhe: 'Toque num ícone da paleta para começar.' };
+    }
+    return { titulo, linha: 'O fluxo tem mais de ' + FLUXO_MAX_PASSOS + ' passos.', detalhe: 'Remova algum passo.' };
+  }
   const rot = (n) => n + ' · ' + fluxoRotulo(passos[n - 1]);
   const atual = rot(erro.indice);
   const remover = 'remova o passo ' + erro.indice;
