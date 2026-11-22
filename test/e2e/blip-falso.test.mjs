@@ -13,6 +13,9 @@ test('página sozinha: Atender com fila 3 → +1 ticket na lista e contador 2', 
   await page.click('#claim-ticket-button');
   const depois = await estado(page);
   assert.equal(depois.naLista.length, antes.naLista.length + 1);
+  const novo = depois.naLista.find((id) => !antes.naLista.includes(id));
+  assert.equal(depois.naLista[0], novo, 'o puxado entra no topo (confirmado pelo BM)');
+  assert.equal(await page.getAttribute('article.chat-list-item:first-child', 'data-id'), novo);
   assert.equal(depois.filaRestante, 2);
   assert.equal(await page.textContent('#waiting-tickets-count'), '2');
   await fechar();

@@ -525,3 +525,4 @@ sem revisão prévia e listada no relatório final.
   todos, Atender, Mover, Só enviar, Enviar + Finalizar com tag, Transferir em massa, Auto). `npm run verificar` ≈ 1 min.
   Perguntas pendentes ao BM (não bloqueiam a Tarefa 9, que é pura): outerHTML de um **card pausado** (para contar
   "Pausados: N" sem abrir menus) e de um **card recém-puxado pelo Atender** (entra no fim ou no topo da lista?).
+  Resposta do BM: o puxado entra no **topo** (página falsa ajustada).

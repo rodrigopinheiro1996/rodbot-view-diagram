@@ -3,8 +3,9 @@
  * Imita só o que o código do bookmarklet procura. Origem de cada parte:
  *   VERIFICADO (comentários do código, Blip real em 18/11/2026): AUTO_SEL (fila, área da lista, contador do filtro,
  *     menu do ticket "menu-<id>", card, #text-input, cabeçalho "ticket-sequential-id", opções de espera) e TRANSF_SEL.
+ *   CONFIRMADO pelo BM: o ticket puxado pelo Atender entra no TOPO da lista.
  *   INFERIDO do código (não conferido no site): estrutura do submenu de pastas, modal de finalizar, tags, como o
- *     Atender reage a cliques repetidos, onde entra um ticket puxado/novo (fim da lista), aparência do ticket pausado.
+ *     Atender reage a cliques repetidos, onde entra um chat novo que cai (fim da lista), aparência do ticket pausado.
  *   SUPOSIÇÕES da spec (§11), configuráveis: S1 mover tira da lista; S2 pausado pode ser movido/transferido;
  *     S3 pausado não recebe mensagem (campo de texto desabilitado).
  *
@@ -65,9 +66,10 @@
   const ticket = (id) => tickets.find((t) => t.id === id);
   const registrar = (tipo, dados) => eventos.push({ tipo, ...dados, em: Date.now() });
 
-  function novoTicket(nome, pausado = false) {
+  function novoTicket(nome, pausado = false, noTopo = false) {
     const t = { id: String(proxId++), nome, pausado, pasta: null, mensagens: [], tags: [], status: 'aberto', atendente: null };
-    tickets.push(t);
+    if (noTopo) tickets.unshift(t);
+    else tickets.push(t);
     return t;
   }
 
@@ -154,12 +156,12 @@
     const visiveis = naLista();
     const ids = new Set(visiveis.map((t) => t.id));
     for (const card of [...el.children]) if (!ids.has(card.dataset.id)) card.remove();
-    for (const t of visiveis) {
-      let card = el.querySelector(`article[data-id="${t.id}"]`);
-      if (!card) { card = criarCard(t); el.appendChild(card); }
+    visiveis.forEach((t, i) => {
+      let card = el.querySelector(`article[data-id="${t.id}"]`) || criarCard(t);
+      if (el.children[i] !== card) el.insertBefore(card, el.children[i] || null); // mantém a ordem sem recriar
       card.querySelector('.pausa-ind').textContent = t.pausado ? '⏸️ em espera' : '';
       card.setAttribute('aria-selected', String(t.id === abertoId));
-    }
+    });
     $('#ticket-filter-dropdown bds-chip-tag').shadowRoot.querySelector('bds-typo').textContent = String(visiveis.length);
     $('#lista-pastas').textContent = cfg.pastas
       .map((p) => `${p} (${tickets.filter((x) => x.pasta === p && x.status === 'aberto').length})`).join(' · ');
@@ -178,7 +180,7 @@
     if (agora - ultimoAtender < cfg.cooldownAtenderMs) return; // INFERIDO: pedido em andamento ignora cliques repetidos
     ultimoAtender = agora;
     filaRestante--;
-    const t = novoTicket(`Cliente da Fila ${proxId}`);
+    const t = novoTicket(`Cliente da Fila ${proxId}`, false, true); // BM confirmou: o puxado entra no TOPO
     registrar('atender', { id: t.id });
     renderizar();
   }
