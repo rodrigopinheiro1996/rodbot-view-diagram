@@ -532,3 +532,7 @@ sem revisão prévia e listada no relatório final.
   funciona e o loop não repete); "já estava em espera" aparece **uma vez** por ticket pausado por outra pessoa (não
   a cada ciclo para os que o próprio fluxo pausou); falha de item pode vir como `{ok:false}` ou exceção comum;
   card sem número conta o máximo do ciclo. A Tarefa 11 adapta as funções reais a essa interface por ticket.
+- Tarefa 10: feita. `motorPorChat` (🆕/👥) no mesmo `motor.js`. Interface nova do adaptador: `novosChats()`,
+  `entreChats()`, `memoria24h.{tem,gravar}`. O id vai para as 24 h **antes** do 1º passo; falha num passo encerra
+  aquele chat (os seguintes não rodam) e segue para o próximo; 👥 faz o lote passo a passo como o ⏳ e depois vigia;
+  vigia lê chats novos a cada 500 ms (não muda com a velocidade); trava "Já há um fluxo rodando" vale para os 3 modos.

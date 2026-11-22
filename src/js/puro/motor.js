@@ -1,4 +1,4 @@
-/* Motor do fluxo — modo ⏳ Aguardando (Tarefa 9). Spec §5, §6 (regra 9), §7, §10.
+/* Motor do fluxo — ⏳ Aguardando (Tarefa 9), 🆕 Que vão cair e 👥 Ambos (Tarefa 10). Spec §5, §6 (regra 9), §7, §10.
  *
  * Puro: nada aqui toca o DOM. Tudo que mexe no Blip chega em deps.acoes (as funções reais no bookmarklet,
  * falsas nos testes). Precisa de velocidade.js, validar-fluxo.js e validar-campos.js carregados antes.
@@ -13,13 +13,19 @@
  *     enviar(id, { mensagem, modo, tag, abrirProximo }) · pausar(id) · despausar(id)
  *     mover(id, pasta) · transferir(id, atendente)   → { ok, motivo?, nota? }
  *     definirVelocidade(v)
+ *     🆕/👥: novosChats() → [id] (chats que caíram desde a última leitura; o observador do Auto por baixo)
+ *            entreChats() (pausa de ritmo AUTO_T.entreTickets) · memoria24h.{ tem(id), gravar(id) }
  *     Falha de ITEM: devolver { ok:false, motivo } (ou lançar um Error comum). Falha GERAL: lançar ErroGeral(motivo).
  *   deps.relogio.esperar(ms) · deps.controle.{ parado(), aguardar() → false se parou }
  *   deps.eventos.{ log(texto), passo(indice, 'aguardando'|'rodando'|'feito'|'falha', detalhe), ciclo(n) }
  *
- * Memória por ticket (§5): só desta execução (zera a cada Iniciar). Um ticket recebe no máximo UM envio na
- * execução inteira; cada passo age no máximo uma vez em cada ticket (por isso [P, D, P] funciona e o loop não
- * repete pausa/movimento em quem já foi tratado).
+ * Memória por ticket (§5):
+ *   ⏳: só desta execução (zera a cada Iniciar). Um ticket recebe no máximo UM envio na execução inteira; cada
+ *       passo age no máximo uma vez em cada ticket (por isso [P, D, P] funciona e o loop não repete).
+ *   🆕: a de 24 h do Auto; o id é gravado ANTES do primeiro passo (nunca envia duas vezes).
+ *   👥: o lote usa a da execução (ticket que já está nas 24 h é tratado de novo, com aviso); a vigia usa as 24 h e
+ *       ignora os tratados no lote.
+ *   🆕/👥: chats presentes ao ativar não são tratados pela vigia. Só um fluxo roda por vez.
  */
 
 function ErroGeral(mensagem) {
@@ -29,6 +35,8 @@ function ErroGeral(mensagem) {
 }
 
 const MOTOR_SENTINELA_MS = 1500;
+const MOTOR_VIGIA_MS = 500; // leitura de chats novos quando não há nenhum na fila (não muda com a velocidade)
+let motorOcupado = false;
 
 function motorChavesResumo(passos) {
   const chaves = [];
@@ -50,6 +58,7 @@ function motorRotuloPasso(passo) {
 // Executa um passo em lote nos tickets da tela. Devolve true se o usuário parou no meio.
 async function motorPassoEmLote(passo, indice, ctx) {
   const { acoes, controle, log, memoria, tc } = ctx;
+  const abrirProximo = ctx.abrirProximo !== false;
   if (passo.tipo === 'atender') {
     const r = await acoes.atender();
     tc.atendidos += (r && r.atendidos) || 0;
@@ -71,6 +80,10 @@ async function motorPassoEmLote(passo, indice, ctx) {
   for (const t of comNumero) {
     if (controle.parado() || !(await controle.aguardar())) return true;
     if (feitosNestePasso.has(t.id)) continue;
+    if (ctx.memoria24h && ctx.memoria24h.tem(t.id) && !memoria.avisados.has(t.id)) {
+      memoria.avisados.add(t.id);
+      log('ℹ️ #' + t.id + ' tratado de novo (execução anterior).');
+    }
     if (passo.tipo === 'enviar') {
       if (memoria.enviados.has(t.id)) continue; // regra 9: ninguém recebe duas mensagens
       if (t.pausado === true) {
@@ -90,7 +103,7 @@ async function motorPassoEmLote(passo, indice, ctx) {
     try {
       if (passo.tipo === 'enviar') {
         r = await acoes.enviar(t.id, {
-          mensagem: passo.mensagem, modo: passo.modo, tag: passo.tag, abrirProximo: true,
+          mensagem: passo.mensagem, modo: passo.modo, tag: passo.tag, abrirProximo,
         });
       } else if (pausando) r = await acoes.pausar(t.id);
       else if (despausando) r = await acoes.despausar(t.id);
@@ -120,34 +133,64 @@ async function motorPassoEmLote(passo, indice, ctx) {
   return false;
 }
 
+function motorContar(tc, passo, ok) {
+  if (!ok) return;
+  if (passo.tipo === 'enviar') {
+    tc.enviados++;
+    if (passo.modo === 'finalizar') tc.finalizados++;
+  } else if (passo.tipo === 'espera') {
+    if (passo.modo === 'despausar') tc.despausados++;
+    else tc.pausados++;
+  } else if (passo.tipo === 'mover') tc.movidos++;
+  else if (passo.tipo === 'transferir') tc.transferidos++;
+}
+
+function motorContadores() {
+  return { falhas: 0, semNumero: 0, atendidos: 0, enviados: 0, finalizados: 0, pausados: 0,
+    despausados: 0, movidos: 0, transferidos: 0 };
+}
+
+function motorResumo(rotulo, tc, chaves) {
+  return rotulo + ': ' + chaves.map((k) => tc[k] + ' ' + k).concat(tc.falhas + ' falhas').join(' · ');
+}
+
+// Só um fluxo por vez (§10). A trava é pega antes de qualquer await.
 async function executarFluxo(fluxo, deps) {
+  if (motorOcupado) return { status: 'recusado', ciclos: 0, motivo: 'Já há um fluxo rodando' };
+  if (!podeIniciar(fluxo)) return { status: 'invalido', ciclos: 0, motivo: 'fluxo inválido ou com campo vazio' };
+  motorOcupado = true;
+  try {
+    const eventos = deps.eventos || {};
+    const log = (t) => { if (eventos.log) eventos.log(t); };
+    if (deps.acoes.contar) {
+      const c = deps.acoes.contar() || {};
+      const v = (x) => (x === null || x === undefined ? '?' : x);
+      log('Fila: ' + v(c.fila) + ' · Na tela: ' + v(c.naTela) + ' · Pausados: ' + v(c.pausados));
+    }
+    if (fluxo.paraQuem === 'aguardando') return await motorAguardando(fluxo, deps, log);
+    return await motorPorChat(fluxo, deps, log);
+  } finally {
+    motorOcupado = false;
+  }
+}
+
+// ⏳ Aguardando: em lote nos tickets da tela, com loop e sentinela.
+async function motorAguardando(fluxo, deps, log) {
   const acoes = deps.acoes;
   const relogio = deps.relogio;
   const controle = deps.controle;
   const eventos = deps.eventos || {};
-  const log = (t) => { if (eventos.log) eventos.log(t); };
   const marcar = (i, s, d) => { if (eventos.passo) eventos.passo(i, s, d); };
-
-  if (!podeIniciar(fluxo)) return { status: 'invalido', ciclos: 0, motivo: 'fluxo inválido ou com campo vazio' };
-  if (fluxo.paraQuem !== 'aguardando') {
-    return { status: 'invalido', ciclos: 0, motivo: 'modo ainda não suportado pelo motor' };
-  }
 
   const passos = fluxo.passos;
   const loop = loopEfetivo(fluxo).efetivo;
   const chaves = motorChavesResumo(passos);
-  const memoria = { enviados: new Set(), porPasso: passos.map(() => new Set()) };
+  const memoria = { enviados: new Set(), avisados: new Set(), porPasso: passos.map(() => new Set()) };
   const totais = { falhas: 0 };
   chaves.forEach((k) => { totais[k] = 0; });
   let ciclos = 0;
   let passoAtual = 0;
   const fim = (status, motivo) => ({ status, ciclos, motivo, totais });
-
-  if (acoes.contar) {
-    const c = acoes.contar() || {};
-    const v = (x) => (x === null || x === undefined ? '?' : x);
-    log('Fila: ' + v(c.fila) + ' · Na tela: ' + v(c.naTela) + ' · Pausados: ' + v(c.pausados));
-  }
 
   try {
     for (let n = 1; ; n++) {
@@ -167,9 +210,8 @@ async function executarFluxo(fluxo, deps) {
         }
       }
 
-      const tc = { falhas: 0, semNumero: 0, atendidos: 0, enviados: 0, finalizados: 0, pausados: 0,
-        despausados: 0, movidos: 0, transferidos: 0 };
-      const ctx = { acoes, controle, log, memoria, tc };
+      const tc = motorContadores();
+      const ctx = { acoes, controle, log, memoria, tc, abrirProximo: true };
       for (let i = 0; i < passos.length; i++) {
         if (controle.parado() || !(await controle.aguardar())) return fim('parado');
         const passo = passos[i];
@@ -183,7 +225,7 @@ async function executarFluxo(fluxo, deps) {
       passoAtual = 0;
 
       ciclos = n;
-      log('Ciclo #' + n + ': ' + chaves.map((k) => tc[k] + ' ' + k).concat(tc.falhas + ' falhas').join(' · '));
+      log(motorResumo('Ciclo #' + n, tc, chaves));
       if (tc.semNumero) log('⚠️ ' + tc.semNumero + ' card(s) sem número, pulado(s)');
       chaves.forEach((k) => { totais[k] += tc[k]; });
       totais.falhas += tc.falhas;
@@ -193,13 +235,132 @@ async function executarFluxo(fluxo, deps) {
       await relogio.esperar(pausaEntreCiclos(fluxo.pausaCiclos === undefined ? 1 : fluxo.pausaCiclos));
     }
   } catch (err) {
-    const motivo = (err && err.message) || String(err);
-    if (passoAtual) {
-      marcar(passoAtual, 'falha', motivo);
-      log('❌ Passo ' + passoAtual + ' · ' + motorRotuloPasso(passos[passoAtual - 1]) + ' falhou: ' + motivo + '. Fluxo parado.');
-    } else {
-      log('❌ ' + motivo + '. Fluxo parado.');
+    return motorFalhaGeral(err, passoAtual, passos, marcar, log, fim);
+  }
+}
+
+function motorFalhaGeral(err, passoAtual, passos, marcar, log, fim) {
+  const motivo = (err && err.message) || String(err);
+  if (passoAtual) {
+    marcar(passoAtual, 'falha', motivo);
+    log('❌ Passo ' + passoAtual + ' · ' + motorRotuloPasso(passos[passoAtual - 1]) + ' falhou: ' + motivo + '. Fluxo parado.');
+  } else {
+    log('❌ ' + motivo + '. Fluxo parado.');
+  }
+  return fim('falha', motivo);
+}
+
+// Aplica todos os passos a UM chat, em ordem; cada passo só começa se o anterior deu certo (o adaptador só
+// devolve ok depois de CONFIRMAR, ex.: envio confirmado antes de pausar). Devolve 'ok' | 'falhou' | 'parado'.
+async function motorPassosNoChat(id, fluxo, ctx) {
+  const { acoes, controle, log, tc, marcar } = ctx;
+  const passos = fluxo.passos;
+  passos.forEach((_, i) => marcar(i + 1, 'aguardando', '#' + id));
+  for (let i = 0; i < passos.length; i++) {
+    if (controle.parado() || !(await controle.aguardar())) return 'parado';
+    const passo = passos[i];
+    ctx.passoAtual = i + 1;
+    if (acoes.definirVelocidade) acoes.definirVelocidade(velocidadeDoPasso(passo, fluxo.velocidade));
+    marcar(i + 1, 'rodando', '#' + id);
+    let r;
+    try {
+      if (passo.tipo === 'enviar') {
+        r = await acoes.enviar(id, { mensagem: passo.mensagem, modo: passo.modo, tag: passo.tag, abrirProximo: false });
+      } else if (passo.tipo === 'espera' && passo.modo === 'pausar') r = await acoes.pausar(id);
+      else if (passo.tipo === 'espera') r = await acoes.despausar(id);
+      else if (passo.tipo === 'mover') r = await acoes.mover(id, passo.pasta);
+      else if (passo.tipo === 'transferir') r = await acoes.transferir(id, passo.atendente);
+      else r = { ok: false, motivo: 'passo indisponível neste modo' };
+    } catch (err) {
+      if (err && err.geral) throw err;
+      r = { ok: false, motivo: (err && err.message) || String(err) };
     }
-    return fim('falha', motivo);
+    if (!r || !r.ok) {
+      tc.falhas++;
+      marcar(i + 1, 'falha', '#' + id);
+      log('⚠️ Chat #' + id + ' · passo ' + (i + 1) + ': ' + ((r && r.motivo) || 'falhou') +
+        '. Os passos seguintes deste chat não rodam.');
+      ctx.passoAtual = 0;
+      return 'falhou';
+    }
+    if (r.nota) log('ℹ️ #' + id + ': ' + r.nota + '.');
+    motorContar(tc, passo, true);
+    marcar(i + 1, 'feito', '#' + id);
+  }
+  ctx.passoAtual = 0;
+  return 'ok';
+}
+
+// 🆕 Que vão cair / 👥 Ambos: (👥) uma passada em lote nos que aguardam; depois vigia, um chat por vez, até Parar.
+async function motorPorChat(fluxo, deps, log) {
+  const acoes = deps.acoes;
+  const relogio = deps.relogio;
+  const controle = deps.controle;
+  const eventos = deps.eventos || {};
+  const marcar = (i, s, d) => { if (eventos.passo) eventos.passo(i, s, d); };
+  const passos = fluxo.passos;
+  const chaves = motorChavesResumo(passos);
+  const memoria = { enviados: new Set(), avisados: new Set(), porPasso: passos.map(() => new Set()) };
+  const tc = motorContadores();
+  const ctx = { acoes, controle, log, memoria, tc, marcar, passoAtual: 0, abrirProximo: false };
+  const fim = (status, motivo) => {
+    log(motorResumo('Resumo', tc, chaves));
+    return { status, ciclos: 0, motivo, totais: tc };
+  };
+
+  const presentes = new Set((acoes.listarTickets() || []).map((t) => t.id).filter(Boolean));
+  const tratados = new Set(); // memória da execução (lote + vigia)
+
+  try {
+    if (fluxo.paraQuem === 'ambos') {
+      const lote = motorContadores();
+      const ctxLote = { acoes, controle, log, memoria, tc: lote, abrirProximo: false, memoria24h: acoes.memoria24h };
+      for (let i = 0; i < passos.length; i++) {
+        if (controle.parado() || !(await controle.aguardar())) return fim('parado');
+        ctx.passoAtual = i + 1;
+        if (acoes.definirVelocidade) acoes.definirVelocidade(velocidadeDoPasso(passos[i], fluxo.velocidade));
+        marcar(i + 1, 'rodando', 'lote');
+        if (await motorPassoEmLote(passos[i], i, ctxLote)) return fim('parado');
+        marcar(i + 1, 'feito', 'lote');
+      }
+      ctx.passoAtual = 0;
+      memoria.porPasso.forEach((set) => set.forEach((id) => tratados.add(id)));
+      log(motorResumo('Lote', lote, chaves));
+      if (lote.semNumero) log('⚠️ ' + lote.semNumero + ' card(s) sem número, pulado(s)');
+      Object.keys(tc).forEach((k) => { tc[k] += lote[k]; });
+    }
+
+    log('👁️ Vigiando chats que caírem' + (fluxo.puxarFila ? ' (e puxando a fila)' : '') + '...');
+    const fila = [];
+    const naFila = new Set();
+    for (;;) {
+      if (controle.parado() || !(await controle.aguardar())) return fim('parado');
+      if (fluxo.puxarFila) {
+        const f = acoes.filaAtual();
+        if (f !== null && f > 0) {
+          const r = await acoes.atender();
+          tc.atendidos += (r && r.atendidos) || 0;
+        }
+      }
+      for (const id of acoes.novosChats() || []) {
+        if (!id || naFila.has(id) || presentes.has(id) || tratados.has(id)) continue;
+        if (acoes.memoria24h && acoes.memoria24h.tem(id)) continue;
+        naFila.add(id);
+        fila.push(id);
+      }
+      if (!fila.length) {
+        await relogio.esperar(MOTOR_VIGIA_MS);
+        continue;
+      }
+      const id = fila.shift();
+      tratados.add(id);
+      if (acoes.memoria24h) acoes.memoria24h.gravar(id); // antes do 1º passo: nunca envia duas vezes
+      const r = await motorPassosNoChat(id, fluxo, ctx);
+      if (r === 'parado') return fim('parado');
+      if (r === 'ok') log('✅ Chat #' + id + ': ' + passos.length + ' passo(s) feitos.');
+      if (acoes.entreChats) await acoes.entreChats();
+    }
+  } catch (err) {
+    return motorFalhaGeral(err, ctx.passoAtual, passos, marcar, log, fim);
   }
 }
