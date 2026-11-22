@@ -15,6 +15,8 @@ Página de instalação do bookmarklet **rod bot** (`rodbot-final.html`) para o 
 |---|---|
 | `npm run build` | `src/` → `rodbot-final.html` |
 | `npm test` | testes de unidade |
+| `npm run e2e` | testes de tela no Blip falso (`test/e2e/blip-falso/`, dados fictícios) |
+| `npm run verificar` | `npm test` + `npm run e2e` |
 | `npm run comparar-bundle [ref]` | prova que um commit só moveu linhas (bundle igual ao de `ref`, padrão `HEAD`) |
 
 Plano e spec do novo Piloto: `docs/plano/`.

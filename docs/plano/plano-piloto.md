@@ -520,3 +520,8 @@ sem revisão prévia e listada no relatório final.
   Tarefa 1 (fica no histórico, `46f3091`); no lugar há `build.test.mjs` (permanente) e a prova "só mudou
   `sleep(` → `pausaAcao(`" contra o `3ca5940`, que vale até a Tarefa 11. Nos testes de tela, o Playwright é
   carregado com `createRequire` (o import ESM direto não o acha).
+- Tarefa 8: feita. `test/e2e/blip-falso/` (página + `blip-falso.js` com API `blipFalso.reiniciar/estado/chegarChat`),
+  `test/e2e/util.mjs`, 10 testes da página e 8 testes do **painel antigo rodando na página falsa** (Pausar/Despausar
+  todos, Atender, Mover, Só enviar, Enviar + Finalizar com tag, Transferir em massa, Auto). `npm run verificar` ≈ 1 min.
+  Perguntas pendentes ao BM (não bloqueiam a Tarefa 9, que é pura): outerHTML de um **card pausado** (para contar
+  "Pausados: N" sem abrir menus) e de um **card recém-puxado pelo Atender** (entra no fim ou no topo da lista?).

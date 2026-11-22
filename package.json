@@ -6,6 +6,7 @@
     "build": "node scripts/build.mjs",
     "test": "node --test \"test/unidade/**/*.test.mjs\"",
     "comparar-bundle": "node scripts/comparar-bundle.mjs",
-    "verificar": "npm test"
+    "verificar": "npm test && npm run e2e",
+    "e2e": "node --test --test-concurrency=1 \"test/e2e/**/*.test.mjs\""
   }
 }
