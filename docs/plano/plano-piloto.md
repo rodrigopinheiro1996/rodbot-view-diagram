@@ -513,3 +513,4 @@ sem revisão prévia e listada no relatório final.
 - Tarefa 3: feita (regras 1, 4, 5, precedência 4 › 1, `erroDoModal` na ordem da regra 10 e `textoModal` com as frases do layout-M).
   Fora do bundle, como a Tarefa 2.
 - Tarefa 4: feita (`loopEfetivo` com `habilitado`, `disponibilidade`, erros globais `sem-para-quem`/`fluxo-vazio`/`muitos-passos`). Fora do bundle.
+- Tarefa 5: feita (`validarCampos`, `podeIniciar`). Fora do bundle. Etapa 2 (validador) concluída.
