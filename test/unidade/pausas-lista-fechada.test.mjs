@@ -6,7 +6,7 @@ import { join } from 'node:path';
 import { RAIZ } from '../../scripts/build.mjs';
 import { carregarPuro } from '../util/carregar-puro.mjs';
 
-const TRECHOS = ['01-base.js', '02-piloto.js', '03-auto.js', '04-transferir.js', '05-fluxo.js', '06-fechar.js'];
+const TRECHOS = ['01-base.js', '02-piloto.js', '03-auto.js', '04-transferir.js', '05-fluxo.js', '99-fechar.js'];
 const ler = (n) => readFileSync(join(RAIZ, 'src/js', n), 'utf8');
 
 // chamadas sleep(…)/pausaAcao(…) no código: arquivo + função de nível superior + valor

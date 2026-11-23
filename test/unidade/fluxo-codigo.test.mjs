@@ -26,9 +26,9 @@ test('o motor, o validador e os adaptadores estão no bundle, antes do fechament
   const ordem = listarTrechos();
   for (const f of ['puro/validar-fluxo.js', 'puro/validar-campos.js', 'puro/motor.js', '05-fluxo.js']) {
     assert.ok(ordem.includes(f), f);
-    assert.ok(ordem.indexOf(f) < ordem.indexOf('06-fechar.js'), f);
+    assert.ok(ordem.indexOf(f) < ordem.indexOf('99-fechar.js'), f);
   }
-  assert.equal(ordem.at(-1), '06-fechar.js');
+  assert.equal(ordem.at(-1), '99-fechar.js');
 });
 
 test('o gancho de teste só é criado com window.__rodBotTeste === true', () => {
