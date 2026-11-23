@@ -1,7 +1,7 @@
 /* Campos obrigatórios dos passos (função pura, sem DOM). Spec §4.
  * Campo vazio (ou só com espaços) ⇒ campo em vermelho e Iniciar bloqueado. Nada é pulado em silêncio.
  *
- * validarCampos(passo) → [{ campo }]   (campo ∈ 'mensagem' | 'tag' | 'pasta' | 'atendente')
+ * validarCampos(passo) → [{ campo }]   (campo ∈ 'mensagem' | 'tag' | 'pasta' | 'atendente' | 'fila')
  * podeIniciar(fluxo)   → boolean       (precisa de validar-fluxo.js carregado antes)
  */
 
@@ -17,7 +17,9 @@ function validarCampos(passo) {
   } else if (passo.tipo === 'mover') {
     if (campoVazio(passo.pasta)) faltando.push({ campo: 'pasta' });
   } else if (passo.tipo === 'transferir') {
-    if (campoVazio(passo.atendente)) faltando.push({ campo: 'atendente' });
+    if (passo.para === 'fila') {
+      if (campoVazio(passo.fila)) faltando.push({ campo: 'fila' });
+    } else if (campoVazio(passo.atendente)) faltando.push({ campo: 'atendente' });
   }
   return faltando;
 }

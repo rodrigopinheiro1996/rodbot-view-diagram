@@ -26,7 +26,8 @@ async function montar(page, paraQuem, passos, { loop, velocidade, puxarFila } = 
     await dismiss(page);
     if (!(await page.$eval(card(i), (e) => e.classList.contains('aberto')))) await page.click(`${card(i)} .rb-passo-tit`);
     if (p.modo) await page.click(`${card(i)} .rb-seg [data-v="${p.modo}"]`);
-    for (const campo of ['mensagem', 'tag', 'pasta', 'atendente']) {
+    if (p.para) await page.click(`${card(i)} .rb-seg[data-campo="para"] [data-v="${p.para}"]`);
+    for (const campo of ['mensagem', 'tag', 'pasta', 'atendente', 'fila']) {
       if (p[campo] !== undefined) await page.fill(`${card(i)} [data-campo="${campo}"]`, p[campo]);
     }
     if (p.velocidade !== undefined) {
@@ -129,6 +130,18 @@ test('⏳ Transferir para "Atendente Fictício" (nome exato) pela tela', async (
   await esperarTopo(page, 'Concluído', 90000);
   const e = await estado(page);
   assert.ok(e.tickets.every((t) => t.status === 'transferido' && t.atendente === 'Atendente Fictício'));
+  await fechar();
+});
+
+test('⏳ Transferir para a fila "Nível 2" pela tela (escolha Atendente | Fila)', async () => {
+  const { page, fechar } = await abrir({ naTela: ['Cliente Fictício 1', 'Cliente Fictício 2'] }, () => {
+    window.__rodBotTransfTimeouts = { esperaModal: 300, pronto: 3000, filtro: 3000 };
+  });
+  await montar(page, 'aguardando', [{ tipo: 'transferir', para: 'fila', fila: 'Nível 2' }]);
+  await page.click('#rb-iniciar');
+  await esperarTopo(page, 'Concluído', 90000);
+  const e = await estado(page);
+  assert.ok(e.tickets.every((t) => t.status === 'transferido' && t.fila === 'Nível 2'), JSON.stringify(e.tickets));
   await fechar();
 });
 

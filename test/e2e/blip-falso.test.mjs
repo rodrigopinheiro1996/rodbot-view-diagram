@@ -105,6 +105,24 @@ test('página sozinha: transferir para um atendente pelo modal', async () => {
   await fechar();
 });
 
+test('página sozinha: transferir para uma fila (Fila já vem marcada, como no Blip real)', async () => {
+  const { page, fechar } = await abrirBlip();
+  const id = (await estado(page)).naLista[0];
+  await page.click(`article[data-id="${id}"] .nome`);
+  await page.click('bds-button-icon[icon="transfer"]');
+  assert.equal(await page.evaluate(() => document.querySelector('bds-radio[label="Fila"]').checked), true);
+  await page.click('bds-autocomplete#autocompleteTeam >> bds-icon');
+  await page.click('bds-autocomplete#autocompleteTeam >> bds-select-option:has-text("Nível 2")');
+  const invisiveis = await page.evaluate(() => [...document.querySelector('#autocompleteTeam').shadowRoot
+    .querySelectorAll('bds-select-option')].filter((o) => o.hasAttribute('invisible')).length);
+  assert.equal(invisiveis, 2, 'as outras filas ficam invisible');
+  await page.click('bds-button#confirm-transfer-btn');
+  const e = await estado(page);
+  assert.equal(e.tickets.find((t) => t.id === id).fila, 'Nível 2');
+  assert.ok(!e.naLista.includes(id));
+  await fechar();
+});
+
 test('seletores do código (AUTO_SEL, TRANSF_SEL) encontram elementos na página falsa', async () => {
   const { page, fechar } = await abrirBlip();
   const id = (await estado(page)).naLista[0];
@@ -137,6 +155,10 @@ test('seletores do código (AUTO_SEL, TRANSF_SEL) encontram elementos na página
   for (const [nome, sel] of Object.entries(CHAT)) if ((await conta(sel)) < 1) faltando.push(nome);
   // com o modal de transferência aberto
   await page.click('bds-button-icon[icon="transfer"]');
+  for (const [nome, sel] of Object.entries({
+    radioFila: 'bds-radio[label="Fila"]',
+    autocompleteFila: 'bds-autocomplete#autocompleteTeam',
+  })) if ((await conta(sel)) < 1) faltando.push(nome);
   await page.click('bds-radio[label="Atendente"] >> input');
   const TRANSF = {
     radioAtendente: 'bds-radio[label="Atendente"]',

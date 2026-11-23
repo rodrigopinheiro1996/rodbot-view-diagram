@@ -113,6 +113,22 @@ test('Transferir: nome do atendente obrigatório', async () => {
   await fechar();
 });
 
+test('Transferir: escolha Atendente | Fila; em Fila o nome da fila é obrigatório', async () => {
+  const { page, fechar } = await abrirMontar();
+  await page.click('#rb-paleta [data-tipo="transferir"]');
+  // o modelo tem Mover antes: o aviso de ordem aparece e é fechado (só os campos importam aqui)
+  if (await page.$('.rb-modal')) await page.click('.rb-modal-btns button:has-text("Entendi")');
+  const seg = `${card(4)} .rb-seg[data-campo="para"]`;
+  assert.equal(await page.textContent(`${seg} button.on`), '👤 Atendente', 'atendente é o padrão');
+  await page.click(`${seg} [data-v="fila"]`);
+  assert.equal(await page.$(`${card(4)} [data-campo="atendente"]`), null, 'em Fila não mostra o campo de atendente');
+  assert.ok(await vazio(page, `${card(4)} [data-campo="fila"]`));
+  await page.fill(`${card(4)} [data-campo="fila"]`, 'Nível 2');
+  assert.equal(await tit(page, 4), '🔁 Transferir → fila Nível 2');
+  assert.ok(!(await vazio(page, `${card(4)} [data-campo="fila"]`)));
+  await fechar();
+});
+
 test('velocidade do passo: 1.5 mostra o selo ×1.5; 9 vira 2.0 com aviso; vazio volta à do fluxo', async () => {
   const { page, fechar } = await abrirMontar();
   await abrir(page, 3);

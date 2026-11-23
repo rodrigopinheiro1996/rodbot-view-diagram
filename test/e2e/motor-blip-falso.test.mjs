@@ -140,6 +140,32 @@ test('⏳ Transferir para "Atendente Fictício": os tickets saem da lista', asyn
   });
 });
 
+// Fila (medido no Blip real em 24/11/2026): "Fila" já vem marcada; o nome da fila só está no texto da opção.
+const TF = (fila) => ({ tipo: 'transferir', para: 'fila', fila, atendente: '' });
+
+test('⏳ Transferir para a fila "Nível 2": os tickets saem da lista e vão para a fila', async () => {
+  await comMotor({}, async (page) => {
+    const r = await rodar(page, fluxo('aguardando', [TF('Nível 2')]));
+    assert.equal(r.status, 'concluido', JSON.stringify(r));
+    const e = await estado(page);
+    assert.ok(e.tickets.every((t) => t.status === 'transferido' && t.fila === 'Nível 2' && !t.atendente), JSON.stringify(e.tickets));
+    assert.equal(r.totais.transferidos, 3);
+    assert.match(await logDoPainel(page), /fila "Nível 2"/);
+  });
+});
+
+test('⏳ Transferir para uma fila que não existe: para no 1º ticket, nada transferido, mostra as filas do Blip', async () => {
+  await comMotor({}, async (page) => {
+    const r = await rodar(page, fluxo('aguardando', [TF('Nivel 2')]));
+    assert.equal(r.status, 'falha', JSON.stringify(r));
+    assert.match(r.motivo, /nenhuma fila com o nome exato "Nivel 2"/);
+    assert.match(r.motivo, /Nível 2/, 'sugere a fila parecida');
+    const e = await estado(page);
+    assert.ok(e.tickets.every((t) => t.status === 'aberto'), 'ninguém transferido');
+    assert.equal(await page.evaluate(() => !!document.querySelector('#modal-transf')), false, 'modal cancelado');
+  });
+});
+
 test('falha geral: botão Atender ausente para o fluxo, passo em Falha e motivo no log', async () => {
   await comMotor({ semBotaoAtender: true, fila: 2 }, async (page) => {
     const r = await rodar(page, fluxo('aguardando', [A, E(), P]));

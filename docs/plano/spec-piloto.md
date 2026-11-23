@@ -53,7 +53,8 @@ um modal. Meta de UX: clareza à primeira vista, sem poluição visual, sem dois
 | ✉️ Enviar | **Só enviar** \| **Enviar + Finalizar** (+ campo **Tag**); campo **Mensagem** + "Usar padrão" | todos |
 | ⏸️ Espera | **Pausar** \| **Despausar** | todos; **Despausar só existe em ⏳** (em 🆕 e 👥 some do seletor) |
 | 📁 Mover para pasta | campo **Pasta** + chips (nv2, default, recentes) | todos |
-| 🔁 Transferir para atendente | campo **Nome do atendente** (exato) | todos |
+| 🔁 Transferir para atendente | escolha **👤 Atendente** + campo **Nome do atendente** (exato) | todos |
+| 🔁 Transferir para fila | escolha **👥 Fila** + campo **Nome da fila** (exato, com acentos, como no Blip) | todos |
 
 - De **1 a 8 passos**; o mesmo passo pode repetir se a ordem for válida.
 - **Campo obrigatório vazio** (mensagem, tag, pasta, atendente) ⇒ campo em vermelho e **Iniciar bloqueado**.

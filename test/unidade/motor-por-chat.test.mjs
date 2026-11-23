@@ -48,7 +48,7 @@ function criarBlip({ naTela = [], pausados = [], chegadas = [], fila = 0, memori
     pausar: async (id) => { reg('pausar', id); return item('pausar', id) || { ok: true }; },
     despausar: async (id) => { reg('despausar', id); return { ok: true }; },
     mover: async (id, pasta) => { reg('mover', id, pasta); return { ok: true }; },
-    transferir: async (id, nome) => { reg('transferir', id, nome); return { ok: true }; },
+    transferir: async (id, nome, para) => { reg('transferir', id, nome, para); return { ok: true }; },
     memoria24h: { tem: (id) => b.memoria24h.has(id), gravar: (id) => b.memoria24h.add(id) },
   };
   return b;
@@ -88,6 +88,13 @@ test('🆕 [E,P]: cada chat novo recebe enviar → pausar, um chat por vez, nunc
     ['enviar', '101', 'so', false], ['pausar', '101'],
     ['enviar', '102', 'so', false], ['pausar', '102'],
   ]);
+});
+
+test('🆕 [Transferir para fila]: cada chat novo vai para a fila do passo', async () => {
+  const blip = criarBlip({ chegadas: [['101']] });
+  const TF = { tipo: 'transferir', para: 'fila', fila: 'Nível 2', atendente: '' };
+  await m.executarFluxo(fluxo('caindo', [TF]), criarDeps(blip).deps);
+  assert.deepEqual(semEntre(blip), [['transferir', '101', 'Nível 2', 'fila']]);
 });
 
 test('🆕: envio não confirmado → não pausa, falha de item, segue para o próximo', async () => {

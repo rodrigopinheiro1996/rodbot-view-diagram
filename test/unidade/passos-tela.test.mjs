@@ -23,6 +23,8 @@ test('titulo e resumo de uma linha', () => {
   assert.equal(m.tituloPasso({ tipo: 'mover', pasta: 'nv2' }), '📁 Mover → nv2');
   assert.equal(m.tituloPasso({ tipo: 'mover', pasta: '' }), '📁 Mover');
   assert.equal(m.tituloPasso({ tipo: 'transferir', atendente: 'Ana' }), '🔁 Transferir → Ana');
+  assert.equal(m.tituloPasso({ tipo: 'transferir', para: 'fila', fila: 'Nível 2', atendente: 'Ana' }), '🔁 Transferir → fila Nível 2');
+  assert.equal(m.tituloPasso({ tipo: 'transferir', para: 'fila', fila: '' }), '🔁 Transferir');
   assert.equal(m.resumoPasso({ tipo: 'atender' }), 'Puxa até zerar · sentinela quando a fila esvaziar');
   assert.equal(m.resumoPasso({ tipo: 'enviar', modo: 'so', mensagem: '' }), 'Mensagem vazia');
   assert.equal(m.resumoPasso({ tipo: 'enviar', modo: 'so', mensagem: 'Realizamos uma nova atualização no seu aplicativo' }),
@@ -30,6 +32,8 @@ test('titulo e resumo de uma linha', () => {
   assert.equal(m.resumoPasso({ tipo: 'enviar', modo: 'finalizar', mensagem: 'Oi', tag: 'Resolvido' }), '“Oi” · tag Resolvido');
   assert.equal(m.resumoPasso({ tipo: 'mover', pasta: '' }), 'Escolha a pasta');
   assert.equal(m.resumoPasso({ tipo: 'transferir', atendente: '' }), 'Escolha o atendente (nome exato)');
+  assert.equal(m.resumoPasso({ tipo: 'transferir', para: 'fila', fila: '' }), 'Escolha a fila (nome exato)');
+  assert.equal(m.resumoPasso({ tipo: 'transferir', para: 'fila', fila: 'Nível 2' }), 'Transfere para a fila');
 });
 
 test('mover passo para cima/baixo e remover não alteram a lista original', () => {

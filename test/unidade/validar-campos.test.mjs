@@ -27,6 +27,9 @@ test('Mover pede Pasta; Transferir pede o nome do atendente', () => {
   assert.deepEqual(campos({ tipo: 'mover', pasta: 'nv2' }), []);
   assert.deepEqual(campos({ tipo: 'transferir', atendente: '' }), [{ campo: 'atendente' }]);
   assert.deepEqual(campos({ tipo: 'transferir', atendente: 'Atendente Fictício' }), []);
+  // Para fila: o campo obrigatório é a fila; o nome de atendente antigo não conta.
+  assert.deepEqual(campos({ tipo: 'transferir', para: 'fila', fila: '', atendente: 'Atendente Fictício' }), [{ campo: 'fila' }]);
+  assert.deepEqual(campos({ tipo: 'transferir', para: 'fila', fila: 'Nível 2', atendente: '' }), []);
 });
 
 test('Espera e Atender não têm campo obrigatório', () => {

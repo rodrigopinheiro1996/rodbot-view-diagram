@@ -54,8 +54,8 @@ function criarBlip({ naTela = ['1', '2', '3'], pausados = [], fila = [0], semNum
       b.tela = b.tela.filter((t) => t.id !== id);
       return { ok: true };
     },
-    transferir: async (id, atendente) => {
-      registrar('transferir', id, atendente);
+    transferir: async (id, nome, para) => {
+      registrar('transferir', id, nome, para);
       b.tela = b.tela.filter((t) => t.id !== id);
       return { ok: true };
     },
@@ -319,7 +319,14 @@ test('EF em ⏳ abre o próximo (abrirProximo:true) e conta enviados e finalizad
 test('Transferir e Mover usam os campos do passo', async () => {
   const blip = criarBlip({ naTela: ['1'] });
   await m.executarFluxo(fluxo([T]), criarDeps(blip).deps);
-  assert.deepEqual(blip.chamadas, [['transferir', '1', 'Atendente Fictício']]);
+  assert.deepEqual(blip.chamadas, [['transferir', '1', 'Atendente Fictício', 'atendente']]);
+});
+
+test('Transferir para fila: manda o nome da fila e o destino "fila" (o nome de atendente é ignorado)', async () => {
+  const blip = criarBlip({ naTela: ['1'] });
+  const TF = { tipo: 'transferir', para: 'fila', fila: 'Nível 2', atendente: 'Atendente Fictício' };
+  await m.executarFluxo(fluxo([TF]), criarDeps(blip).deps);
+  assert.deepEqual(blip.chamadas, [['transferir', '1', 'Nível 2', 'fila']]);
 });
 
 test('velocidade: cada passo usa a sua ou a do fluxo', async () => {

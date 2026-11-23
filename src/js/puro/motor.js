@@ -11,7 +11,8 @@
  *     atender() → { atendidos }                      (puxa até zerar)
  *     listarTickets() → [{ id | null, pausado: true | false | null }]
  *     enviar(id, { mensagem, modo, tag, abrirProximo }) · pausar(id) · despausar(id)
- *     mover(id, pasta) · transferir(id, atendente)   → { ok, motivo?, nota?, pulado? }
+ *     mover(id, pasta) · transferir(id, nome, para)  → { ok, motivo?, nota?, pulado? }
+ *       para: 'atendente' (padrão, passo sem `para`) ou 'fila'; nome = passo.atendente ou passo.fila
  *       pulado: ok mas nada foi feito (ex.: ticket em espera não recebe mensagem); não conta; em 🆕/👥 encerra o chat
  *       semEfeito: o ticket já estava no estado pedido (ex.: já em espera); não conta e o chat segue
  *     definirVelocidade(v)
@@ -29,6 +30,11 @@
  *       ignora os tratados no lote.
  *   🆕/👥: chats presentes ao ativar não são tratados pela vigia. Só um fluxo roda por vez.
  */
+
+// Passo Transferir → [nome, para]. Passo antigo (sem `para`) é para atendente.
+function destinoTransferir(passo) {
+  return passo.para === 'fila' ? [passo.fila, 'fila'] : [passo.atendente, 'atendente'];
+}
 
 function ErroGeral(mensagem) {
   const e = new Error(mensagem);
@@ -110,7 +116,7 @@ async function motorPassoEmLote(passo, indice, ctx) {
       } else if (pausando) r = await acoes.pausar(t.id);
       else if (despausando) r = await acoes.despausar(t.id);
       else if (passo.tipo === 'mover') r = await acoes.mover(t.id, passo.pasta);
-      else r = await acoes.transferir(t.id, passo.atendente);
+      else r = await acoes.transferir(t.id, ...destinoTransferir(passo));
     } catch (err) {
       if (err && err.geral) throw err;
       r = { ok: false, motivo: (err && err.message) || String(err) };
@@ -275,7 +281,7 @@ async function motorPassosNoChat(id, fluxo, ctx) {
       } else if (passo.tipo === 'espera' && passo.modo === 'pausar') r = await acoes.pausar(id);
       else if (passo.tipo === 'espera') r = await acoes.despausar(id);
       else if (passo.tipo === 'mover') r = await acoes.mover(id, passo.pasta);
-      else if (passo.tipo === 'transferir') r = await acoes.transferir(id, passo.atendente);
+      else if (passo.tipo === 'transferir') r = await acoes.transferir(id, ...destinoTransferir(passo));
       else r = { ok: false, motivo: 'passo indisponível neste modo' };
     } catch (err) {
       if (err && err.geral) throw err;

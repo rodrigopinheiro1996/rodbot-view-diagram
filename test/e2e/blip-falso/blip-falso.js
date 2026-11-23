@@ -11,6 +11,10 @@
  *     clique na outzone e clique no ⋮ (que alterna). NÃO fecham: Escape e cliques no body. Abrir um ⋮ não fecha os
  *     outros. Fechado, o bds-menu fica transparente e as opções continuam com tamanho na tela (medido 23/11/2026 nos
  *     menus de pasta, mesmo componente: bds-menu-action fechado com 240x56).
+ *   MEDIDO pelo BM no Blip real (24/11/2026, mapa-transferir-fila): no modal de transferência "Fila" já vem marcada
+ *     e mostra bds-autocomplete#autocompleteTeam. As opções (bds-select-option no shadow do autocomplete) têm o nome
+ *     só no TEXTO (sem aria-label); escolhida uma, as outras ganham o atributo `invisible`, o campo mostra o nome e
+ *     "Transferir ticket" libera. Trocar para "Atendente" mostra #autocompleteAttendant (este último, INFERIDO).
  *   SUPOSIÇÕES da spec (§11), configuráveis: S1 mover tira da lista; S2 pausado pode ser movido/transferido;
  *     S3 pausado não recebe mensagem (campo de texto desabilitado).
  *
@@ -66,6 +70,7 @@
     pastas: ['nv2', 'default', 'Retorno'],
     tags: ['Resolvido', 'Atualização', 'Dúvida'],
     atendentes: ['Atendente Fictício', 'Atendente Fictício Dois', 'Outra Pessoa'],
+    filas: ['Fila Fictícia', 'Fila Fictícia Dois', 'Nível 2'],
     semBotaoAtender: false,
     cooldownAtenderMs: 150,
     menuComoBlip: false,
@@ -305,18 +310,54 @@
     m.setAttribute('role', 'dialog');
     m.innerHTML = `<h3>Transferir atendimento do Ticket #${t.id}</h3>
       <bds-radio label="Fila">Fila</bds-radio> <bds-radio label="Atendente">Atendente</bds-radio>
+      <div class="campo-fila"><bds-autocomplete id="autocompleteTeam"></bds-autocomplete></div>
       <div class="campo" hidden><bds-autocomplete id="autocompleteAttendant"></bds-autocomplete></div>
       <bds-button id="confirm-transfer-btn" disabled>Transferir ticket</bds-button>
       <bds-button class="cancelar">Cancelar</bds-button>`;
     document.body.appendChild(m);
+    const confirmar = m.querySelector('#confirm-transfer-btn');
+    const radioFila = m.querySelector('bds-radio[label="Fila"]');
     const radio = m.querySelector('bds-radio[label="Atendente"]');
+    const campoFila = m.querySelector('.campo-fila');
     const campo = m.querySelector('.campo');
-    const ac = m.querySelector('bds-autocomplete');
+    let destino = 'fila';
+    radioFila.checked = true; // no Blip real "Fila" já vem marcada
+    const escolherDestino = (d) => {
+      destino = d;
+      radioFila.checked = d === 'fila';
+      radio.checked = d === 'atendente';
+      campoFila.hidden = d !== 'fila';
+      campo.hidden = d !== 'atendente';
+      confirmar.setAttribute('disabled', '');
+    };
+    radioFila.shadowRoot.querySelector('input').addEventListener('change', () => escolherDestino('fila'));
+    radio.shadowRoot.querySelector('input').addEventListener('change', () => escolherDestino('atendente'));
+
+    // Fila (medido): nome só no texto da opção; escolhida uma, as outras ficam `invisible`.
+    const acFila = m.querySelector('#autocompleteTeam');
+    const inputFila = acFila.shadowRoot.querySelector('input');
+    const caixaFila = acFila.shadowRoot.querySelector('.lista');
+    caixaFila.insertAdjacentHTML('beforebegin', '<style>bds-select-option[invisible] { display: none; }</style>');
+    for (const nome of cfg.filas) {
+      const op = document.createElement('bds-select-option');
+      op.setAttribute('type-option', 'default');
+      op.textContent = nome;
+      op.shadowRoot.querySelector('div[role="button"]').dataset.value = JSON.stringify({ name: nome, agentsOnline: true });
+      op.addEventListener('click', () => {
+        inputFila.value = nome;
+        caixaFila.querySelectorAll('bds-select-option').forEach((o) => o.toggleAttribute('invisible', o !== op));
+        caixaFila.hidden = true;
+        confirmar.removeAttribute('disabled');
+      });
+      caixaFila.appendChild(op);
+    }
+    acFila.shadowRoot.querySelector('bds-icon').addEventListener('click', () => { caixaFila.hidden = !caixaFila.hidden; });
+
+    // Atendente (estrutura de TRANSF_SEL): pesquisa pelo que é digitado.
+    const ac = m.querySelector('#autocompleteAttendant');
     const acRaiz = ac.shadowRoot;
     const input = acRaiz.querySelector('input');
     const caixa = acRaiz.querySelector('.lista');
-    const confirmar = m.querySelector('#confirm-transfer-btn');
-    radio.shadowRoot.querySelector('input').addEventListener('change', () => { campo.hidden = false; });
     for (const nome of cfg.atendentes) {
       const op = document.createElement('bds-select-option');
       op.setAttribute('aria-label', nome);
@@ -342,8 +383,13 @@
       if (confirmar.hasAttribute('disabled') || !m.isConnected) return;
       m.remove();
       t.status = 'transferido';
-      t.atendente = input.value;
-      registrar('transferir', { id: t.id, atendente: input.value });
+      if (destino === 'fila') {
+        t.fila = inputFila.value;
+        registrar('transferir', { id: t.id, fila: inputFila.value });
+      } else {
+        t.atendente = input.value;
+        registrar('transferir', { id: t.id, atendente: input.value });
+      }
       renderizar();
     });
     m.querySelector('.cancelar').addEventListener('click', () => m.remove());

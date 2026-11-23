@@ -1,5 +1,5 @@
   /* ========================================================
-     TRANSFERÊNCIA EM MASSA PARA ATENDENTE
+     TRANSFERÊNCIA PARA ATENDENTE OU FILA
      Sempre o PRIMEIRO ticket da lista atual: abre, transfere pelo modal do Blip,
      confirma uma única vez e só conta quando o ticket sai da lista.
      ======================================================== */
@@ -21,8 +21,16 @@
     radioAtendente: 'bds-radio[label="Atendente"]',
     autocomplete: 'bds-autocomplete#autocompleteAttendant',
     opcao: 'bds-select-option',
-    confirmar: 'bds-button#confirm-transfer-btn'
+    confirmar: 'bds-button#confirm-transfer-btn',
+    // Fila: medido no Blip real em 24/11/2026. "Fila" já vem marcada; as opções têm o nome só no texto.
+    radioFila: 'bds-radio[label="Fila"]',
+    autocompleteFila: 'bds-autocomplete#autocompleteTeam'
   };
+  const TRANSF_DESTINOS = {
+    atendente: { radio: TRANSF_SEL.radioAtendente, autocomplete: TRANSF_SEL.autocomplete, rotulo: 'Atendente', campo: 'Selecionar atendente' },
+    fila: { radio: TRANSF_SEL.radioFila, autocomplete: TRANSF_SEL.autocompleteFila, rotulo: 'Fila', campo: 'Selecionar fila' }
+  };
+  let tDestino = TRANSF_DESTINOS.atendente; // destino da transferência em andamento
   let painelFechado = false;
   class TransfInterrompido extends Error {}
   class TransfSuspenso extends Error {}
@@ -98,8 +106,11 @@
     const inner = host?.shadowRoot?.querySelector('button.icon__button');
     return inner ? { host, inner, habilitado: !tDesabilitado(host) && !tDesabilitado(inner) } : null;
   }
-  function tRadioAtendente() {
-    return [...document.querySelectorAll(TRANSF_SEL.radioAtendente)].find(tVisivel) || null;
+  function tRadioDestino() {
+    return [...document.querySelectorAll(tDestino.radio)].find(tVisivel) || null;
+  }
+  function tAlgumRadio() {
+    return [...document.querySelectorAll(`${TRANSF_SEL.radioAtendente}, ${TRANSF_SEL.radioFila}`)].find(tVisivel) || null;
   }
   function tRadioMarcado(host) {
     if (!host) return false;
@@ -117,7 +128,7 @@
     return null;
   }
   function tAutocomplete() {
-    return [...document.querySelectorAll(TRANSF_SEL.autocomplete)].find(tVisivel) || null;
+    return [...document.querySelectorAll(tDestino.autocomplete)].find(tVisivel) || null;
   }
   function tInputAuto(ac) {
     return ac?.shadowRoot?.querySelector('input[type="text"]') || null;
@@ -134,8 +145,9 @@
   }
   // O Blip mantém todas as opções no DOM e só esconde as que não batem com a pesquisa:
   // conta como visível apenas a opção com área real e com o div[role="button"] interno exibido.
+  // Na lista de filas, as opções que não servem ganham o atributo `invisible` (medido no Blip real).
   function tOpcaoVisivel(op) {
-    if (!tVisivel(op)) return false;
+    if (!tVisivel(op) || op.hasAttribute('invisible')) return false;
     const r = op.getBoundingClientRect();
     if (r.width < 1 || r.height < 1) return false;
     const inner = op.shadowRoot?.querySelector('div[role="button"]');
@@ -154,7 +166,7 @@
   }
   // Fecha o modal sem transferir (botão "Cancelar" do modal; se não houver, Escape).
   function tCancelarModal() {
-    if (!tConfirmar() && !tRadioAtendente()) return;
+    if (!tConfirmar() && !tAlgumRadio()) return;
     const cancelar = [...document.querySelectorAll('bds-button, button')]
       .find(b => tVisivel(b) && !p.contains(b) && (b.textContent || '').trim() === 'Cancelar');
     if (cancelar) tClicar(cancelar.shadowRoot?.querySelector('button') || cancelar);
@@ -164,8 +176,12 @@
   function tSemAcento(s) {
     return tNorm(s).normalize('NFD').replace(/[̀-ͯ]/g, '');
   }
+  // Nome da opção: atendentes têm aria-label; filas têm o nome só no texto (medido no Blip real).
+  function tRotulo(op) {
+    return (op.getAttribute('aria-label') || op.textContent || '').replace(/\s+/g, ' ').trim();
+  }
   function tRotulos() {
-    return tOpcoes(tAutocomplete()).map(op => op.getAttribute('aria-label') || '');
+    return tOpcoes(tAutocomplete()).map(tRotulo);
   }
   // Digita como um usuário: um caractere por vez com keydown → InputEvent(insertText) → keyup.
   // Atribuir só .value (ou o texto inteiro de uma vez) pode não disparar a pesquisa do Blip.
@@ -214,8 +230,8 @@
     let chave = '', desde = Date.now(), ultimo = { iguais: 0, total: 0, filtrou: false };
     const r = await tEsperar(() => {
       const ops = tOpcoes(tAutocomplete());
-      const rot = ops.map(op => op.getAttribute('aria-label') || '');
-      const iguais = ops.filter(op => tNorm(op.getAttribute('aria-label')) === alvo);
+      const rot = ops.map(tRotulo);
+      const iguais = ops.filter(op => tNorm(tRotulo(op)) === alvo);
       const k = rot.join('|');
       ultimo = { iguais: iguais.length, total: ops.length, filtrou: k !== antes, rotulos: rot };
       if (k !== chave) { chave = k; desde = Date.now(); return null; }
@@ -253,7 +269,7 @@
       // Sem resultado visível: dica a partir de todas as opções que o Blip carregou (inclusive escondidas).
       const ac = tAutocomplete();
       const todas = [...document.querySelectorAll(TRANSF_SEL.opcao), ...(ac?.shadowRoot ? ac.shadowRoot.querySelectorAll(TRANSF_SEL.opcao) : [])]
-        .map(op => op.getAttribute('aria-label') || '');
+        .map(tRotulo);
       const dica = tParecidos(todas, nome);
       throw new TransfSuspenso(`o Blip não retornou atendentes para "${nome}"` + (dica.length ? ` (nomes parecidos no Blip: ${dica.join(', ')})` : ''));
     }
@@ -262,7 +278,22 @@
       (parecidos.length ? `; parecidos: ${parecidos.join(', ')}` : '') + '; nome parcial não é aceito)');
   }
 
-  async function tTransferirTicket(id, nome, alvo) {
+  // Fila: a lista é curta e já vem inteira; escolhe sem digitar, como o BM fez no Blip (abre a lista e clica no nome).
+  async function tEscolherFila(nome, alvo) {
+    const r = await tEsperarOpcao(alvo, '', TRANSF_T.opcoes);
+    if (r.op) return r.op;
+    if (r.ambiguo || r.iguais > 1) throw new TransfSuspenso(`há ${r.ambiguo || r.iguais} filas chamadas "${nome}" no Blip`);
+    if (!r.total) throw new TransfSuspenso('a lista de filas do Blip não abriu (nenhuma fila visível)');
+    const parecidos = tParecidos(r.rotulos || [], nome);
+    throw new TransfSuspenso(`nenhuma fila com o nome exato "${nome}"` +
+      (parecidos.length ? ` (parecidas: ${parecidos.join(', ')})` : '') +
+      `; filas no Blip: ${(r.rotulos || []).join(', ')}`);
+  }
+
+  // destino: 'atendente' (padrão, Transferir antigo) ou 'fila'.
+  async function tTransferirTicket(id, nome, alvo, destino = 'atendente') {
+    tDestino = TRANSF_DESTINOS[destino] || TRANSF_DESTINOS.atendente;
+    const ehFila = tDestino === TRANSF_DESTINOS.fila;
     let confirmado = false;
     const garantirChat = etapa => {
       if (autoIndicioChatAtivo(id) === null) throw new TransfSuspenso(`o atendimento aberto deixou de ser o #${id} (${etapa})`);
@@ -284,7 +315,7 @@
       garantirChat('antes de abrir a transferência');
       tClicar(botao.inner);
 
-      const radio = await tEsperar(tRadioAtendente, TRANSF_T.modal);
+      const radio = await tEsperar(tRadioDestino, TRANSF_T.modal);
       if (!radio) throw new TransfSuspenso('o modal de transferência não abriu');
       const ticketModal = tTicketDoModal(radio);
       if (ticketModal && ticketModal !== id) throw new TransfSuspenso(`o modal aberto é do ticket #${ticketModal}, esperado #${id}`);
@@ -293,46 +324,53 @@
         await tAntesDeClicar();
         tClicar(radio.shadowRoot?.querySelector('label') || radio.shadowRoot?.querySelector('input[type="radio"]') || radio);
       }
-      if (!(await tEsperar(() => tRadioMarcado(tRadioAtendente()), 4000))) throw new TransfSuspenso('não foi possível selecionar "Atendente"');
+      if (!(await tEsperar(() => tRadioMarcado(tRadioDestino()), 4000))) throw new TransfSuspenso(`não foi possível selecionar "${tDestino.rotulo}"`);
 
       const ac = await tEsperar(() => { const a = tAutocomplete(); return a && tInputAuto(a) ? a : null; }, TRANSF_T.modal);
-      if (!ac) throw new TransfSuspenso('o campo "Selecionar atendente" não apareceu');
+      if (!ac) throw new TransfSuspenso(`o campo "${tDestino.campo}" não apareceu`);
       // O modal do Blip termina de carregar depois de exibir o campo: espera mínima antes de mexer nele
-      // (pausar estende; parar interrompe), depois espera a lista de atendentes estabilizar.
+      // (pausar estende; parar interrompe), depois abre a lista (seta, no máximo 2 cliques) e espera estabilizar.
       await tEsperar(() => null, TRANSF_T.esperaModal);
       await tAntesDeClicar();
       await tEsperarAutocompletePronto();
-      log(`🔎 Ticket #${id}: pesquisando "${nome}" no Blip...`);
-      const opcao = await tPesquisarAtendente(nome, alvo); // pesquisa NO BLIP com o nome do painel
+      let opcao;
+      if (ehFila) {
+        log(`🔎 Ticket #${id}: escolhendo a fila "${nome}" no Blip...`);
+        opcao = await tEscolherFila(nome, alvo);
+      } else {
+        log(`🔎 Ticket #${id}: pesquisando "${nome}" no Blip...`);
+        opcao = await tPesquisarAtendente(nome, alvo); // pesquisa NO BLIP com o nome do painel
+      }
 
-      // Clicar no nome do resultado é o que libera "Transferir ticket" no Blip.
+      // Clicar no nome do resultado (div[role="button"] interno) é o que libera "Transferir ticket" no Blip.
       const alvoClique = () => opcao.isConnected ? (opcao.shadowRoot?.querySelector('div[role="button"]') || opcao) : null;
       await tAntesDeClicar();
       tClicar(alvoClique());
       const liberou = () => { const c = tConfirmar(); return c && c.habilitado; };
       if (!(await tEsperar(liberou, 2000)) && alvoClique()) {
-        log('↻ O botão não liberou; clicando no nome do atendente novamente (seleção, não confirmação)...');
+        log(`↻ O botão não liberou; clicando no nome ${ehFila ? 'da fila' : 'do atendente'} novamente (seleção, não confirmação)...`);
         await tAntesDeClicar();
         dispararCliqueReal(alvoClique());
       }
       if (!(await tEsperar(liberou, TRANSF_T.confirmar))) {
-        throw new TransfSuspenso('o botão "Transferir ticket" não liberou após clicar no atendente');
+        throw new TransfSuspenso(`o botão "Transferir ticket" não liberou após clicar ${ehFila ? 'na fila' : 'no atendente'}`);
       }
       if (tNorm(tInputAuto(tAutocomplete())?.value) !== alvo) {
-        throw new TransfSuspenso('o atendente selecionado no Blip não corresponde ao nome informado');
+        throw new TransfSuspenso(`${ehFila ? 'a fila selecionada' : 'o atendente selecionado'} no Blip não corresponde ao nome informado`);
       }
 
       // Validação final, imediatamente antes da ÚNICA confirmação.
       await tAntesDeClicar();
       garantirChat('antes de confirmar');
-      const ticketModal2 = tTicketDoModal(tRadioAtendente() || tConfirmar()?.host);
+      const ticketModal2 = tTicketDoModal(tRadioDestino() || tConfirmar()?.host);
       if (ticketModal2 && ticketModal2 !== id) throw new TransfSuspenso(`o modal passou a ser do ticket #${ticketModal2}`);
-      if (tNorm(tInputAuto(tAutocomplete())?.value) !== alvo) throw new TransfSuspenso('a seleção de atendente mudou antes da confirmação');
+      if (!tRadioMarcado(tRadioDestino())) throw new TransfSuspenso(`"${tDestino.rotulo}" deixou de estar marcado antes da confirmação`);
+      if (tNorm(tInputAuto(tAutocomplete())?.value) !== alvo) throw new TransfSuspenso(`a seleção ${ehFila ? 'de fila' : 'de atendente'} mudou antes da confirmação`);
       const conf = tConfirmar();
       if (!conf || !conf.habilitado) throw new TransfSuspenso('o botão "Transferir ticket" ficou desabilitado antes da confirmação');
       confirmado = true;
       tClicar(conf.inner);
-      log(`📨 Ticket #${id}: transferência confirmada no Blip; aguardando a saída da lista...`);
+      log(`📨 Ticket #${id}: transferência para ${ehFila ? 'a fila' : 'o atendente'} "${nome}" confirmada no Blip; aguardando a saída da lista...`);
 
       // Após confirmar: só observa (Parar não interrompe; não há nova tentativa).
       const saiu = await tEsperar(() => (autoBotaoMenu(id) ? null : true), TRANSF_T.resultado, false);

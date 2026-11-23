@@ -186,9 +186,9 @@
     return { ok: false, motivo: r === 'parado' ? 'interrompido' : `não foi possível mover para "${pasta}"` };
   }
 
-  async function fluxoTransferir(id, nome) {
+  async function fluxoTransferir(id, nome, para = 'atendente') {
     try {
-      await tTransferirTicket(id, nome, tNorm(nome));
+      await tTransferirTicket(id, nome, tNorm(nome), para === 'fila' ? 'fila' : 'atendente');
       return { ok: true };
     } catch (err) {
       if (err instanceof TransfInterrompido) return { ok: false, motivo: err.message };

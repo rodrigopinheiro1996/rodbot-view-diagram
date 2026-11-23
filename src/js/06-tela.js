@@ -684,12 +684,16 @@
       html += '<input class="rb-in" data-campo="pasta" placeholder="Nome da pasta">';
       html += `<div class="rb-chips">${telaChipsPastas().map(() => '<button type="button" class="rb-chip" data-pasta=""></button>').join('')}</div>`;
     } else if (passo.tipo === 'transferir') {
-      html += '<input class="rb-in" data-campo="atendente" placeholder="Nome do atendente (exato, como no Blip)">';
+      const para = passo.para === 'fila' ? 'fila' : 'atendente';
+      html += telaSeg('para', [['atendente', '👤 Atendente'], ['fila', '👥 Fila']], para);
+      html += para === 'fila'
+        ? '<input class="rb-in" data-campo="fila" placeholder="Nome da fila (exato, como no Blip)">'
+        : '<input class="rb-in" data-campo="atendente" placeholder="Nome do atendente (exato, como no Blip)">';
     }
     html += `<div class="rb-linha rb-vel"><span class="rb-sub">Velocidade deste passo</span><span class="rb-sp"></span>
       <input class="rb-in rb-in-vel" data-campo="velocidade" placeholder="do fluxo" inputmode="decimal"><span class="rb-aviso"></span></div>`;
     caixa.innerHTML = html;
-    for (const el of caixa.querySelectorAll('[data-campo="mensagem"], [data-campo="tag"], [data-campo="pasta"], [data-campo="atendente"]')) {
+    for (const el of caixa.querySelectorAll('[data-campo="mensagem"], [data-campo="tag"], [data-campo="pasta"], [data-campo="atendente"], [data-campo="fila"]')) {
       el.value = passo[el.dataset.campo] || '';
     }
     if (passo.tipo === 'mover') {

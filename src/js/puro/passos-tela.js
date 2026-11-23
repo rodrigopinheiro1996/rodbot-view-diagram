@@ -21,6 +21,7 @@ function tituloPasso(p) {
   if (p.tipo === 'enviar') return '✉️ Enviar · ' + (p.modo === 'finalizar' ? 'Enviar + Finalizar' : 'Só enviar');
   if (p.tipo === 'espera') return p.modo === 'despausar' ? '▶️ Despausar' : '⏸️ Pausar';
   if (p.tipo === 'mover') return '📁 Mover' + ((p.pasta || '').trim() ? ' → ' + p.pasta.trim() : '');
+  if (p.tipo === 'transferir' && p.para === 'fila') return '🔁 Transferir' + ((p.fila || '').trim() ? ' → fila ' + p.fila.trim() : '');
   if (p.tipo === 'transferir') return '🔁 Transferir' + ((p.atendente || '').trim() ? ' → ' + p.atendente.trim() : '');
   return '📥 Atender fila';
 }
@@ -42,6 +43,7 @@ function resumoPasso(p) {
   }
   if (p.tipo === 'espera') return p.modo === 'despausar' ? 'Tira os clientes da espera' : 'Coloca os clientes em espera';
   if (p.tipo === 'mover') return (p.pasta || '').trim() ? 'Move para a pasta' : 'Escolha a pasta';
+  if (p.para === 'fila') return (p.fila || '').trim() ? 'Transfere para a fila' : 'Escolha a fila (nome exato)';
   return (p.atendente || '').trim() ? 'Transfere para o atendente' : 'Escolha o atendente (nome exato)';
 }
 
