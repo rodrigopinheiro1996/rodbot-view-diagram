@@ -98,6 +98,13 @@
     .rb-bloco { display: flex; flex-direction: column; gap: 4px; }
     .rb-toggle { display: flex; align-items: center; gap: 8px; font-size: 13px; cursor: pointer; }
     .rb-toggle input:disabled + * , .rb-toggle:has(input:disabled) { opacity: 0.6; cursor: not-allowed; }
+    .rb-modal-neutro { border-color: var(--rb-border-strong); }
+    .rb-modal-neutro h3 { color: var(--rb-text); }
+    .rb-modal-campo { margin: 0 0 8px; }
+    .rb-modal-campo[hidden] { display: none; }
+    .rb-modal-erro { color: #f6a3a3; font-size: 12.5px; margin: 0 0 10px; min-height: 0; }
+    .rb-modal-erro:empty { display: none; }
+    #rb-alterado[hidden], #rb-apagar[hidden] { display: none; }
     .rb-cta.rb-bloqueado { opacity: 0.45; }
     .rb-cta { padding: 12px; border-radius: 12px; border: 0; background: var(--rb-accent); color: var(--rb-on-accent);
       font-weight: 800; font-size: 15px; font-family: inherit; cursor: pointer; }
@@ -156,7 +163,12 @@
   function telaCarregar(item) {
     tela.item = item;
     tela.fluxo = JSON.parse(JSON.stringify(item.fluxo));
+    tela.original = JSON.parse(JSON.stringify(item.fluxo)); // base para "alterações não salvas"
     tela.aberto = null;
+  }
+
+  function telaSujo() {
+    return !!tela.original && temAlteracoes(tela.fluxo, tela.original);
   }
 
   // ───────── Montar (opção 2 · compacta)
@@ -164,8 +176,11 @@
     rbVistas.montar.innerHTML = `
       <div class="rb-linha">
         <select id="rb-fluxo-sel" class="rb-sel" title="Fluxo salvo"></select>
+        <button type="button" id="rb-salvar" class="rb-ib" title="Salvar como novo fluxo">💾</button>
+        <button type="button" id="rb-apagar" class="rb-ib" title="Apagar este fluxo" hidden>🗑</button>
         <button type="button" id="rb-novo" class="rb-ib" title="Novo fluxo vazio">＋</button>
       </div>
+      <div id="rb-alterado" class="rb-aviso" hidden>● Alterações não salvas (💾 salva como um fluxo novo)</div>
       <div class="rb-linha rb-pq-linha" id="rb-pq">
         <span class="rb-sub">Para quem?</span>
         <button type="button" class="rb-pq" data-pq="aguardando">⏳ Aguardando</button>
@@ -205,12 +220,18 @@
     const v = rbVistas.montar;
     v.querySelector('#rb-fluxo-sel').addEventListener('change', e => {
       const item = tela.fluxos.listar().find(x => x.id === e.target.value);
-      if (item) { telaCarregar(item); tela.fluxos.marcarAtual(item.id); telaRenderMontar(); }
+      if (!item) return;
+      if (telaSujo()) e.target.value = tela.item.id || ''; // enquanto a pergunta está aberta, o seletor mostra o fluxo atual
+      telaAntesDeTrocar(() => { telaCarregar(item); tela.fluxos.marcarAtual(item.id); telaRenderMontar(); });
     });
     v.querySelector('#rb-novo').addEventListener('click', () => {
-      telaCarregar({ id: null, nome: 'Novo fluxo', modelo: false, fluxo: tela.fluxos.novoVazio() });
-      telaRenderMontar();
+      telaAntesDeTrocar(() => {
+        telaCarregar({ id: null, nome: 'Novo fluxo', modelo: false, fluxo: tela.fluxos.novoVazio() });
+        telaRenderMontar();
+      });
     });
+    v.querySelector('#rb-salvar').addEventListener('click', () => telaPedirNome(null));
+    v.querySelector('#rb-apagar').addEventListener('click', telaConfirmarApagar);
     v.querySelector('#rb-pq').addEventListener('click', e => {
       const b = e.target.closest('[data-pq]');
       if (!b) return;
@@ -273,6 +294,113 @@
     telaRenderMontar();
     const doNovo = (validarFluxo(f).erros || []).filter(e => e.indice === f.passos.length);
     if (doNovo.length) telaAbrirModal(erroDoModal(doNovo));
+  }
+
+  // ───────── Diálogos dos fluxos salvos (mesmo visual do modal de ordem; textos só por textContent)
+  function telaDialogo({ titulo, linha, detalhe, campo, botoes }) {
+    telaFecharModal();
+    const ancora = document.createElement('div');
+    ancora.className = 'rb-modal-ancora';
+    ancora.innerHTML = `
+      <div class="rb-modal-fundo">
+        <div class="rb-modal rb-modal-neutro" role="dialog" aria-modal="true" aria-labelledby="rb-modal-tit">
+          <h3 id="rb-modal-tit"></h3>
+          <p class="rb-modal-linha"></p>
+          <p class="rb-modal-detalhe"></p>
+          <input class="rb-in rb-modal-campo" hidden maxlength="40">
+          <p class="rb-modal-erro" role="alert"></p>
+          <div class="rb-modal-btns"></div>
+        </div>
+      </div>`;
+    ancora.querySelector('h3').textContent = titulo;
+    ancora.querySelector('.rb-modal-linha').textContent = linha || '';
+    ancora.querySelector('.rb-modal-detalhe').textContent = detalhe || '';
+    const input = ancora.querySelector('.rb-modal-campo');
+    const erro = ancora.querySelector('.rb-modal-erro');
+    if (campo) { input.hidden = false; input.placeholder = campo.placeholder || ''; input.value = campo.valor || ''; }
+    const btns = ancora.querySelector('.rb-modal-btns');
+    let primeiro = null;
+    for (const b of botoes) {
+      const el = document.createElement('button');
+      el.type = 'button';
+      el.textContent = b.texto;
+      if (b.primario) el.className = 'rb-primario';
+      // a ação pode devolver um texto de erro: o diálogo continua aberto e mostra o erro
+      el.addEventListener('click', () => {
+        const msg = b.acao ? b.acao(input.value) : null;
+        if (typeof msg === 'string' && msg) { erro.textContent = msg; return; }
+        telaFecharModal();
+        if (b.depois) b.depois();
+      });
+      btns.appendChild(el);
+      if (!primeiro) primeiro = el;
+    }
+    win.insertBefore(ancora, win.firstChild);
+    ancora.querySelector('.rb-modal-fundo').style.height = win.clientHeight + 'px';
+    (campo ? input : primeiro).focus();
+    ancora.addEventListener('keydown', e => {
+      if (e.key === 'Escape') { telaFecharModal(); telaRenderMontar(); }
+      if (e.key === 'Enter' && campo) { e.preventDefault(); btns.querySelector('.rb-primario')?.click(); }
+    });
+    return ancora;
+  }
+
+  // 💾: sempre cria um fluxo NOVO com nome. `depois` roda se salvar (usado na troca de fluxo).
+  function telaPedirNome(depois) {
+    telaDialogo({
+      titulo: '💾 Salvar como novo fluxo',
+      linha: 'Dê um nome ao fluxo.',
+      detalhe: 'Até 10 fluxos seus (os modelos ⭐ não contam). Modelos nunca são alterados.',
+      campo: { placeholder: 'Ex.: Mensagem de atualização', valor: '' },
+      botoes: [
+        { texto: 'Cancelar', acao: () => null, depois: () => telaRenderMontar() },
+        {
+          texto: 'Salvar', primario: true,
+          acao: nome => {
+            const r = tela.fluxos.salvar(nome, tela.fluxo);
+            if (!r.ok) return r.motivo;
+            const salvo = tela.fluxos.listar().find(x => x.id === r.id);
+            telaCarregar(salvo);
+            tela.fluxos.marcarAtual(r.id);
+            return null;
+          },
+          depois: () => { telaRenderMontar(); if (depois) depois(); },
+        },
+      ],
+    });
+  }
+
+  // Trocar de fluxo (ou criar um vazio) com alterações pendentes pergunta o que fazer (§9).
+  function telaAntesDeTrocar(seguir) {
+    if (!telaSujo()) { seguir(); return; }
+    telaDialogo({
+      titulo: 'Alterações não salvas',
+      linha: 'Você mexeu em "' + tela.item.nome + '".',
+      detalhe: 'Salvar como novo guarda uma cópia com as alterações. Descartar volta o fluxo ao que estava salvo.',
+      botoes: [
+        { texto: 'Voltar', acao: () => null, depois: () => telaRenderMontar() },
+        { texto: 'Descartar', acao: () => null, depois: seguir },
+        { texto: 'Salvar como novo', primario: true, acao: () => null, depois: () => telaPedirNome(seguir) },
+      ],
+    });
+  }
+
+  function telaConfirmarApagar() {
+    const id = tela.item.id;
+    if (!id || tela.item.modelo) return;
+    telaDialogo({
+      titulo: 'Apagar fluxo',
+      linha: 'Apagar "' + tela.item.nome + '"?',
+      detalhe: 'Isso não pode ser desfeito.',
+      botoes: [
+        { texto: 'Cancelar', acao: () => null },
+        {
+          texto: 'Apagar', primario: true,
+          acao: () => { const r = tela.fluxos.apagar(id); return r.ok ? null : r.motivo; },
+          depois: () => { const atual = tela.fluxos.listar()[0]; telaCarregar(atual); tela.fluxos.marcarAtual(atual.id); telaRenderMontar(); },
+        },
+      ],
+    });
   }
 
   // ───────── Modal de ordem inválida (layout-M)
@@ -345,6 +473,8 @@
       sel.appendChild(o);
     }
     sel.value = tela.item.id || '';
+    v.querySelector('#rb-apagar').hidden = !tela.item.id || !!tela.item.modelo;
+    telaAtualizarAlterado();
     // Para quem?
     v.querySelectorAll('.rb-pq').forEach(b => b.classList.toggle('on', b.dataset.pq === f.paraQuem));
     // paleta
@@ -391,7 +521,12 @@
     return String(n).replace('.', ',');
   }
 
+  function telaAtualizarAlterado() {
+    rbVistas.montar.querySelector('#rb-alterado').hidden = !telaSujo();
+  }
+
   function telaAtualizarAjustes() {
+    telaAtualizarAlterado();
     const v = rbVistas.montar;
     const f = tela.fluxo;
     const porChat = f.paraQuem === 'caindo' || f.paraQuem === 'ambos';
@@ -492,6 +627,7 @@
 
   // Atualiza o que depende dos valores (títulos, selo, resumos, erros, campos vazios, Iniciar) sem recriar os campos.
   function telaAtualizarMontar() {
+    telaAtualizarAlterado();
     const v = rbVistas.montar;
     const f = tela.fluxo;
     const validacao = validarFluxo(f);

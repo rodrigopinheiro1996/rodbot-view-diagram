@@ -583,3 +583,9 @@ sem revisão prévia e listada no relatório final.
   motivo sem Atender em 1º; se o usuário desligou, recolocar o Atender não religa), pausa entre ciclos (0–60 s, "não muda
   com a velocidade") e "Também puxar a fila (Atender)" só em 🆕/👥 (desligada por padrão). Em 🆕/👥 somem o loop e a pausa
   entre ciclos. Tudo fica no fluxo ao trocar de modo e voltar.
+- Tarefa 20: feita (`docs/plano/layouts/tela-fluxos-troca-tarefa20.png`, `tela-fluxos-nome-tarefa20.png`). Seletor com os modelos
+  ⭐ e os fluxos do usuário; 💾 abre um diálogo de nome (valida vazio, repetido, nome de modelo e o limite de 10 dentro do
+  próprio diálogo) e **sempre cria um fluxo novo**, que passa a ser o atual; "● Alterações não salvas" aparece ao editar;
+  trocar de fluxo ou tocar em ＋ com alterações pergunta **Voltar / Descartar / Salvar como novo** (acréscimo meu: "Voltar",
+  para o usuário não ficar sem saída; Esc também volta); 🗑 só em fluxo do usuário, com confirmação. O último usado abre
+  carregado. Enquanto a pergunta está aberta o seletor continua mostrando o fluxo atual.
