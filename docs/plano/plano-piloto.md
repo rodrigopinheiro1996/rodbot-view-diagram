@@ -548,3 +548,10 @@ sem revisão prévia e listada no relatório final.
   Ajuste no motor: `semEfeito` (já estava no estado pedido) não conta e, em 🆕/👥, o chat segue; `pulado` (envio a
   ticket em espera) encerra o chat. Blip falso ganhou `adicionarFila(n)`. Etapa 4 (motor) concluída; `npm run
   verificar` ≈ 3 min.
+- **Escolha do BM para a tela Montar: Opção 2 · Compacta** (`docs/plano/layouts/opcao-montar-2.png`): "Para quem?" em
+  pílulas pequenas na linha abaixo do seletor, paleta numa faixa fina, passos, Ajustes recolhidos, Iniciar. As Tarefas
+  15–20 seguem essa imagem; o Acompanhar segue o `layout-D.png`.
+- Tarefa 13: feita. `src/js/puro/fluxos-salvos.js` (`criarFluxosSalvos`, `temAlteracoes`), fora do bundle até a tela usar.
+  Decisões: o Mover do ⭐ Piloto clássico também começa com a pasta **vazia** (vermelha até escolher um chip), como a
+  mensagem; nomes não se repetem (sem diferenciar maiúsculas) e não podem ser o de um modelo; todo passo tem
+  `velocidade: null` (= a do fluxo).
