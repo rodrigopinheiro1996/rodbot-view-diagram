@@ -21,7 +21,8 @@
     if (!menuEstaAberto(wrap)) clickUnico(alvo);
     // Primeiro o menu deste ticket: no Blip real menus de outros tickets podem ter ficado abertos, e a busca geral de
     // encontrarOpcaoMenu acharia a opção de um deles (um ticket pausado faria este parecer pausado).
-    const doTicket = testId => isAcaoMenuVisivel(wrap?.querySelector(`bds-menu-action[data-testid="${testId}"]`));
+    const doTicket = testId => menuEstaAberto(wrap) &&
+      isAcaoMenuVisivel(wrap?.querySelector(`bds-menu-action[data-testid="${testId}"]`));
     const estado = await waitFor(() => {
       if (doTicket(AUTO_SEL.opcaoDespausar)) return 'pausado';
       if (doTicket(AUTO_SEL.opcaoPausar)) return 'ativo';

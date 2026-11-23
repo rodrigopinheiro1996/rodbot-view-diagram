@@ -805,9 +805,15 @@
     const inner = el.shadowRoot?.querySelector('button, div');
     return !!(inner && isElementoVisivel(inner));
   }
+  // No Blip real o bds-menu fechado só fica transparente: as opções continuam com tamanho na tela. Por isso o estado
+  // vem do próprio bds-menu (atributo/propriedade `open`, medido no Blip em 23/11/2026) e não da visibilidade.
+  function bdsMenuAberto(menu) {
+    return !!menu && (menu.open === true || menu.hasAttribute('open'));
+  }
   function encontrarOpcaoMenu(wrap, testId) {
     const local = wrap?.querySelector(`bds-menu-action[data-testid="${testId}"]`);
-    if (isAcaoMenuVisivel(local)) return local;
+    const menuLocal = local?.closest('bds-menu');
+    if (isAcaoMenuVisivel(local) && (!menuLocal || bdsMenuAberto(menuLocal))) return local;
     const abertos = document.querySelectorAll(`bds-menu[open] bds-menu-action[data-testid="${testId}"], div.ticket-menu.visible bds-menu-action[data-testid="${testId}"]`);
     for (const el of abertos) {
       if (isAcaoMenuVisivel(el)) return el;
@@ -817,7 +823,7 @@
   function menuEstaAberto(wrap) {
     if (!wrap) return false;
     const menu = wrap.querySelector('bds-menu');
-    if (menu && (menu.open === true || menu.hasAttribute('open'))) return true;
+    if (menu) return bdsMenuAberto(menu);
     return [...wrap.querySelectorAll('bds-menu-action')].some(isAcaoMenuVisivel);
   }
   async function fecharMenuTicket(wrap, btn) {
@@ -826,7 +832,8 @@
     document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', code: 'Escape', keyCode: 27, bubbles: true }));
     await sleep(150);
     if (menuEstaAberto(wrap)) {
-      clickUnico(btn);
+      // No Blip, Escape não fecha; a outzone do bds-menu fecha. O ⋮ alterna, então só é clicado sem outzone.
+      clickUnico(menu?.shadowRoot?.querySelector('.outzone') || btn);
       await sleep(150);
     }
   }

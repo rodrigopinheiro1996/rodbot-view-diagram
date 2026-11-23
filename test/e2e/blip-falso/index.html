@@ -17,6 +17,7 @@
   .ticket-menu { position: absolute; right: 8px; top: 6px; }
   bds-menu { display: block; position: absolute; right: 0; z-index: 5; background: #fff; border: 1px solid #ccc; min-width: 180px; }
   bds-menu:not([open]) { display: none; }
+  body.menu-como-blip bds-menu:not([open]) { display: block; opacity: 0; pointer-events: none; }
   bds-menu-action { display: block; }
   [hidden] { display: none !important; }
   .folder-submenu-container { display: none; padding-left: 12px; }
