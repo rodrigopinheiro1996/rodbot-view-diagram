@@ -605,3 +605,8 @@ sem revisão prévia e listada no relatório final.
   saíram; os fluxos que eles cobriam já estão nos testes do motor na página falsa. **Este é o primeiro HTML com a tela
   nova** (`rodbot-final.html`, 722 KB; o bookmarklet codificado passou de 286 KB para 356 KB).
   Ficou CSS morto do Piloto antigo (`.ba-pipeline`, `.ba-step`…) que não afeta nada; dá para limpar depois.
+- Tarefa 23: feita. `test/e2e/ponta-a-ponta.test.mjs`: 10 cenários montados e iniciados **pela tela** (sem gancho):
+  ⏳ [A,E,P,M] sem loop; ⏳ com loop e sentinela até o ciclo 2; 🆕 [E,P]; 👥 [E,P] (lote + vigia); 🆕 com "Também puxar a
+  fila"; Transferir pelo nome exato; ordem inválida (modal, nada executa) e campo vazio (Iniciar não roda); velocidade
+  2.0 × 1.0 escolhida nos Ajustes (mais rápido, nenhuma pausa abaixo de 50%); ⭐ Auto clássico com a mensagem migrada;
+  tema e último fluxo salvo mantidos ao reabrir.
