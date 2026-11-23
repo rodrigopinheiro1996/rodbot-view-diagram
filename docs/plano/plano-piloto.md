@@ -589,3 +589,8 @@ sem revisão prévia e listada no relatório final.
   trocar de fluxo ou tocar em ＋ com alterações pergunta **Voltar / Descartar / Salvar como novo** (acréscimo meu: "Voltar",
   para o usuário não ficar sem saída; Esc também volta); 🗑 só em fluxo do usuário, com confirmação. O último usado abre
   carregado. Enquanto a pergunta está aberta o seletor continua mostrando o fluxo atual.
+- Tarefa 21: feita (`docs/plano/layouts/tela-acompanhar-tarefa21.png`). `puro/stepper.js` (`montarStepper`, `novaExecucao`,
+  `aplicarEventoStepper`, `rotuloExecucao`). O motor avisa a tela por `fluxoOuvintes` (eventos `inicio`, `ciclo`, `passo`,
+  `fim`); o Acompanhar mostra nome + "Ciclo #N" / "Vigiando" / "Concluído" / "Falha" / "Parado", o passo a passo do usuário
+  (✓ Feito, Rodando com o chat atual em 🆕/👥, ✕ Falha com o motivo), os contadores do Auto só em 🆕/👥 (são os mesmos
+  elementos do painel antigo, movidos para cá) e a barra Pausar/Parar + log de antes. Parado, mostra o fluxo do Montar.

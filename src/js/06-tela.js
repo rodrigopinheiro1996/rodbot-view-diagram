@@ -105,6 +105,29 @@
     .rb-modal-erro { color: #f6a3a3; font-size: 12.5px; margin: 0 0 10px; min-height: 0; }
     .rb-modal-erro:empty { display: none; }
     #rb-alterado[hidden], #rb-apagar[hidden] { display: none; }
+    .rb-acomp-topo { display: flex; align-items: center; gap: 8px; padding: 10px 12px; border-radius: 12px;
+      border: 1px solid var(--rb-border); background: var(--rb-card); }
+    .rb-acomp-nome { flex: 1; font-weight: 700; font-size: 14px; }
+    .rb-pill { font-size: 12px; font-weight: 700; padding: 4px 10px; border-radius: 999px; background: var(--rb-accent-dim);
+      color: var(--rb-accent); border: 1px solid var(--rb-accent-border); }
+    .rb-pill[data-estado="parado"], .rb-pill[data-estado="concluido"] { background: var(--rb-elevated); color: var(--rb-muted); border-color: var(--rb-border); }
+    .rb-pill[data-estado="falha"] { background: rgba(242, 96, 96, 0.12); color: #f6a3a3; border-color: rgba(242, 96, 96, 0.5); }
+    .rb-stepper { display: flex; flex-direction: column; gap: 8px; }
+    .rb-etapa { display: flex; gap: 10px; align-items: center; padding: 10px 12px; border-radius: 12px;
+      border: 1px solid var(--rb-border); background: var(--rb-card); }
+    .rb-etapa-marca { width: 26px; height: 26px; flex: none; border-radius: 50%; display: grid; place-items: center;
+      background: var(--rb-elevated); border: 1px solid var(--rb-border); font-size: 12px; font-weight: 800; }
+    .rb-etapa-txt { flex: 1; min-width: 0; }
+    .rb-etapa-tit { font-weight: 700; font-size: 13.5px; }
+    .rb-etapa-sub { font-size: 12px; color: var(--rb-muted); margin-top: 2px; }
+    .rb-etapa[data-status="aguardando"] { opacity: 0.7; }
+    .rb-etapa[data-status="rodando"] { border-color: var(--rb-accent); box-shadow: 0 0 0 2px var(--rb-accent-dim); }
+    .rb-etapa[data-status="rodando"] .rb-etapa-sub { color: var(--rb-accent); }
+    .rb-etapa[data-status="feito"] .rb-etapa-marca { background: var(--rb-accent); color: var(--rb-on-accent); border-color: transparent; }
+    .rb-etapa[data-status="falha"] { border-color: #f26060; background: rgba(242, 96, 96, 0.10); }
+    .rb-etapa[data-status="falha"] .rb-etapa-marca { background: #f26060; color: #fff; border-color: transparent; }
+    .rb-etapa[data-status="falha"] .rb-etapa-sub { color: #f6a3a3; }
+    #rb-acomp-auto[hidden] { display: none; }
     .rb-cta.rb-bloqueado { opacity: 0.45; }
     .rb-cta { padding: 12px; border-radius: 12px; border: 0; background: var(--rb-accent); color: var(--rb-on-accent);
       font-weight: 800; font-size: 15px; font-family: inherit; cursor: pointer; }
@@ -112,12 +135,13 @@
   `;
 
   const telaArmazenamento = { getItem: k => localStorage.getItem(k), setItem: (k, v) => localStorage.setItem(k, v) };
-  const tela = { fluxos: null, item: null, fluxo: null, aberto: null };
+  const tela = { fluxos: null, item: null, fluxo: null, aberto: null, exec: null };
   const rbAbas = {};
   const rbVistas = {};
 
   function telaAplicarAba(aba) {
     win.setAttribute('data-rb-aba', aba);
+    if (aba === 'acompanhar') telaRenderAcompanhar();
     Object.keys(rbAbas).forEach(k => {
       rbAbas[k].classList.toggle('ativa', k === aba);
       rbAbas[k].setAttribute('aria-selected', String(k === aba));
@@ -157,7 +181,53 @@
     tela.fluxos = criarFluxosSalvos(telaArmazenamento, { mensagemAuto: mensagemAutoMigrada(telaArmazenamento) });
     telaCarregar(tela.fluxos.atual());
     telaMontarMontar();
+    telaMontarAcompanhar();
     telaAplicarAba(abaInicial());
+  }
+
+  // ───────── Acompanhar (layout D): nome + ciclo, passo a passo do usuário, contadores do Auto (🆕/👥), Pausar/Parar e log
+  function telaMontarAcompanhar() {
+    rbVistas.acompanhar.innerHTML = `
+      <div class="rb-acomp-topo"><span id="rb-acomp-nome" class="rb-acomp-nome"></span><span id="rb-acomp-ciclo" class="rb-pill"></span></div>
+      <div id="rb-stepper" class="rb-stepper"></div>
+      <div id="rb-acomp-auto" hidden></div>`;
+    // os contadores do Auto são os mesmos elementos de antes (autoRender continua atualizando por id)
+    const cartaoAuto = document.getElementById('ba-auto-count')?.closest('.ba-card');
+    if (cartaoAuto) rbVistas.acompanhar.querySelector('#rb-acomp-auto').appendChild(cartaoAuto);
+    fluxoOuvintes.push(telaAoEventoFluxo);
+    telaRenderAcompanhar();
+  }
+
+  function telaAoEventoFluxo(ev) {
+    if (ev.tipo === 'inicio') {
+      tela.exec = novaExecucao({ nome: ev.nome, paraQuem: ev.fluxo.paraQuem, passos: ev.fluxo.passos });
+    } else if (tela.exec) {
+      tela.exec = aplicarEventoStepper(tela.exec, ev);
+    }
+    telaRenderAcompanhar();
+  }
+
+  function telaRenderAcompanhar() {
+    const v = rbVistas.acompanhar;
+    if (!v || !tela.fluxo || !v.querySelector('#rb-acomp-nome')) return; // ainda não montado
+    const base = tela.exec || { nome: tela.item.nome, paraQuem: tela.fluxo.paraQuem, passos: tela.fluxo.passos };
+    v.querySelector('#rb-acomp-nome').textContent = base.nome;
+    const pill = v.querySelector('#rb-acomp-ciclo');
+    pill.textContent = rotuloExecucao(tela.exec);
+    pill.dataset.estado = tela.exec ? (tela.exec.fim || 'rodando') : 'parado';
+    const lista = v.querySelector('#rb-stepper');
+    lista.innerHTML = '';
+    for (const item of montarStepper(base.passos, tela.exec)) {
+      const el = document.createElement('div');
+      el.className = 'rb-etapa';
+      el.dataset.status = item.status;
+      el.innerHTML = '<span class="rb-etapa-marca"></span><div class="rb-etapa-txt"><div class="rb-etapa-tit"></div><div class="rb-etapa-sub"></div></div>';
+      el.querySelector('.rb-etapa-marca').textContent = item.status === 'feito' ? '✓' : item.status === 'falha' ? '✕' : String(item.indice);
+      el.querySelector('.rb-etapa-tit').textContent = item.rotulo;
+      el.querySelector('.rb-etapa-sub').textContent = item.texto;
+      lista.appendChild(el);
+    }
+    v.querySelector('#rb-acomp-auto').hidden = !(base.paraQuem === 'caindo' || base.paraQuem === 'ambos');
   }
 
   function telaCarregar(item) {
@@ -514,6 +584,7 @@
     });
     telaAtualizarMontar();
     telaAtualizarAjustes();
+    if (!tela.exec) telaRenderAcompanhar();
   }
 
   // ───────── ⚙️ Ajustes (velocidade, loop, pausa entre ciclos, puxar a fila)

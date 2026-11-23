@@ -211,9 +211,17 @@
     },
   };
 
-  const fluxoEventos = []; // [{ tipo:'passo'|'ciclo', ... }] para o Acompanhar (Tarefa 21) e os testes
+  const fluxoEventos = []; // [{ tipo:'inicio'|'ciclo'|'passo'|'fim', ... }] para o Acompanhar e os testes
+  const fluxoOuvintes = []; // a tela Acompanhar se registra aqui (Tarefa 21)
 
-  async function fluxoIniciar(fluxo) {
+  function fluxoAvisar(ev) {
+    fluxoEventos.push(ev);
+    for (const f of fluxoOuvintes) {
+      try { f(ev); } catch (err) { /* um erro na tela nunca derruba o fluxo */ }
+    }
+  }
+
+  async function fluxoIniciar(fluxo, opcoes = {}) {
     if (rodando || auto.atual || auto.ativo) return { status: 'recusado', ciclos: 0, motivo: 'Já há um fluxo rodando' };
     const porChat = fluxo && fluxo.paraQuem !== 'aguardando';
     rodando = true;
@@ -224,7 +232,9 @@
     ativarWakeLock();
     atualizarBotoesEstado(true, 'Fluxo em execução');
     cntEl.textContent = '0';
+    fluxoAvisar({ tipo: 'inicio', nome: opcoes.nome || 'Fluxo', fluxo });
     if (porChat) autoAtivar(id => fluxoNovos.push(id));
+    let status = 'falha';
     try {
       const r = await executarFluxo(fluxo, {
         acoes: FLUXO_ACOES,
@@ -232,10 +242,11 @@
         controle: { parado: () => !rodando || painelFechado, aguardar: aguardarPausaSeNecessario },
         eventos: {
           log,
-          passo: (indice, status, detalhe) => fluxoEventos.push({ tipo: 'passo', indice, status, detalhe }),
-          ciclo: n => fluxoEventos.push({ tipo: 'ciclo', n }),
+          passo: (indice, st, detalhe) => fluxoAvisar({ tipo: 'passo', indice, status: st, detalhe }),
+          ciclo: n => fluxoAvisar({ tipo: 'ciclo', n }),
         },
       });
+      status = r.status;
       log(`🏁 Fluxo ${r.status}${r.motivo ? `: ${r.motivo}` : ''}.`);
       return r;
     } finally {
@@ -246,13 +257,14 @@
       modoAtual = null;
       await liberarWakeLock();
       atualizarBotoesEstado(false);
+      fluxoAvisar({ tipo: 'fim', status });
     }
   }
 
   // Gancho de teste (§12.4): só existe quando o teste define window.__rodBotTeste = true ANTES de injetar.
   if (window.__rodBotTeste === true) {
     window.__rodBot = {
-      executarFluxo: fluxo => fluxoIniciar(fluxo),
+      executarFluxo: (fluxo, opcoes) => fluxoIniciar(fluxo, opcoes),
       eventos: () => fluxoEventos.slice(),
       parar: () => pararExecucao(),
     };
