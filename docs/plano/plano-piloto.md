@@ -568,3 +568,8 @@ sem revisão prévia e listada no relatório final.
   em faixa, cartões com ▲ ▼ ✕ (um aberto por vez), passo vermelho com o motivo, Iniciar com a dica do que falta.
   Sem modo, tocar na paleta faz o "Para quem?" piscar e não adiciona. O 💾 e o aviso de alterações ficam na Tarefa 20;
   o caso "Despausar em 🆕 fica vermelho" é testado na Tarefa 17 (precisa do campo Pausar | Despausar).
+- Tarefa 17: feita (`docs/plano/layouts/tela-montar-tarefa17.png`). Campos no cartão aberto: Enviar (Só enviar | Enviar +
+  Finalizar, mensagem, "Usar padrão" só ao tocar, Tag só no Finalizar), Espera (Pausar | Despausar; Despausar some em
+  🆕/👥), Mover (pasta + chips nv2, default e recentes), Transferir (nome exato) e Velocidade do passo (aceita vírgula;
+  fora da faixa corrige com aviso; selo ×N.N no título). Digitar não recria o cartão (o foco fica); campo obrigatório
+  vazio fica vermelho e bloqueia o Iniciar; texto do usuário nunca vira HTML.

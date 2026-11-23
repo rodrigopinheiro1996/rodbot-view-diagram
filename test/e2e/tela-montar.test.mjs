@@ -12,7 +12,7 @@ async function abrirMontar() {
   return { page, erros, fechar };
 }
 const titulos = (page) => page.$$eval('#rb-passos .rb-passo', (els) =>
-  els.map((e) => e.querySelector('.rb-num').textContent + ' · ' + e.querySelector('.rb-passo-tit').textContent));
+  els.map((e) => e.querySelector('.rb-num').textContent + ' · ' + e.querySelector('.rb-tit-txt').textContent));
 const novo = async (page) => page.click('#rb-novo');
 const pq = (page, modo) => page.click(`.rb-pq[data-pq="${modo}"]`);
 const add = (page, tipo) => page.click(`#rb-paleta [data-tipo="${tipo}"]`);
