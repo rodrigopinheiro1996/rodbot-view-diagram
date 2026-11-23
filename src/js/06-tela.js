@@ -88,6 +88,16 @@
     .rb-modal-btns button { flex: 1; min-width: 120px; padding: 11px 8px; border-radius: 11px; font-weight: 700; font-size: 14px; cursor: pointer;
       border: 1px solid var(--rb-border-strong); background: var(--rb-elevated); color: var(--rb-text); font-family: inherit; }
     .rb-modal-btns button.rb-primario { background: var(--rb-accent); color: var(--rb-on-accent); border-color: transparent; }
+    .rb-ajustes { border-radius: 12px; border: 1px solid var(--rb-border); background: var(--rb-card); }
+    .rb-ajustes-topo { width: 100%; display: flex; align-items: center; gap: 8px; padding: 10px 12px; background: transparent;
+      border: 0; color: var(--rb-text); cursor: pointer; text-align: left; font-family: inherit; }
+    .rb-ajustes-tit { font-weight: 700; font-size: 13px; }
+    #rb-ajustes-res { flex: 1; min-width: 0; text-align: right; }
+    .rb-ajustes-corpo { display: flex; flex-direction: column; gap: 10px; padding: 0 12px 12px; }
+    .rb-ajustes-corpo[hidden], .rb-bloco[hidden] { display: none; }
+    .rb-bloco { display: flex; flex-direction: column; gap: 4px; }
+    .rb-toggle { display: flex; align-items: center; gap: 8px; font-size: 13px; cursor: pointer; }
+    .rb-toggle input:disabled + * , .rb-toggle:has(input:disabled) { opacity: 0.6; cursor: not-allowed; }
     .rb-cta.rb-bloqueado { opacity: 0.45; }
     .rb-cta { padding: 12px; border-radius: 12px; border: 0; background: var(--rb-accent); color: var(--rb-on-accent);
       font-weight: 800; font-size: 15px; font-family: inherit; cursor: pointer; }
@@ -167,7 +177,29 @@
       </div>
       <div class="rb-dica" id="rb-pal-dica"></div>
       <div class="rb-passos" id="rb-passos"></div>
-      <div id="rb-ajustes"></div>
+      <div class="rb-ajustes" id="rb-ajustes">
+        <button type="button" id="rb-ajustes-topo" class="rb-ajustes-topo" aria-expanded="false">
+          <span class="rb-ajustes-tit">⚙️ Ajustes</span><span id="rb-ajustes-res" class="rb-sub"></span><span class="rb-sub rb-seta">▾</span>
+        </button>
+        <div class="rb-ajustes-corpo" id="rb-ajustes-corpo" hidden>
+          <div class="rb-linha"><label class="rb-sub" for="rb-vel">Velocidade</label><span class="rb-sp"></span>
+            <input id="rb-vel" class="rb-in rb-in-vel" inputmode="decimal"><span id="rb-vel-aviso" class="rb-aviso"></span></div>
+          <div class="rb-sub">De 0.5 a 2.0 · maior = mais rápido · vale para as pausas entre ações</div>
+          <div id="rb-loop-bloco" class="rb-bloco">
+            <label class="rb-toggle"><input type="checkbox" id="rb-loop"> Repetir em loop (sentinela)</label>
+            <div id="rb-loop-motivo" class="rb-sub"></div>
+          </div>
+          <div id="rb-ciclo-bloco" class="rb-bloco">
+            <div class="rb-linha"><label class="rb-sub" for="rb-ciclo">Pausa entre ciclos (s)</label><span class="rb-sp"></span>
+              <input id="rb-ciclo" class="rb-in rb-in-vel" inputmode="decimal"><span id="rb-ciclo-aviso" class="rb-aviso"></span></div>
+            <div class="rb-sub">De 0 a 60 s · não muda com a velocidade</div>
+          </div>
+          <div id="rb-puxar-bloco" class="rb-bloco" hidden>
+            <label class="rb-toggle"><input type="checkbox" id="rb-puxar"> Também puxar a fila (Atender)</label>
+            <div class="rb-sub">O bot clica em Atender e quem for puxado recebe o fluxo uma vez</div>
+          </div>
+        </div>
+      </div>
       <button type="button" id="rb-iniciar" class="rb-cta">⚡ Iniciar fluxo</button>
       <div class="rb-dica" id="rb-iniciar-dica"></div>`;
     const v = rbVistas.montar;
@@ -210,6 +242,7 @@
       telaRenderMontar();
     });
     telaLigarCampos(v.querySelector('#rb-passos'));
+    telaLigarAjustes(v);
     v.querySelector('#rb-iniciar').addEventListener('click', () => {
       if (!podeIniciar(tela.fluxo)) {
         // ordem inválida: o botão continua clicável para o modal explicar o motivo (§6)
@@ -350,6 +383,67 @@
       lista.appendChild(card);
     });
     telaAtualizarMontar();
+    telaAtualizarAjustes();
+  }
+
+  // ───────── ⚙️ Ajustes (velocidade, loop, pausa entre ciclos, puxar a fila)
+  function telaTextoSegundos(n) {
+    return String(n).replace('.', ',');
+  }
+
+  function telaAtualizarAjustes() {
+    const v = rbVistas.montar;
+    const f = tela.fluxo;
+    const porChat = f.paraQuem === 'caindo' || f.paraQuem === 'ambos';
+    const loop = loopEfetivo(f);
+    const partes = ['Velocidade ' + Number(f.velocidade).toFixed(1)];
+    if (porChat) partes.push(f.puxarFila ? 'Puxa a fila' : 'Sem puxar a fila');
+    else if (loop.efetivo) partes.push('🔁 Loop ligado', telaTextoSegundos(f.pausaCiclos) + ' s entre ciclos');
+    else partes.push('🔁 Loop desligado');
+    v.querySelector('#rb-ajustes-res').textContent = partes.join(' · ');
+    v.querySelector('#rb-loop-bloco').hidden = porChat;
+    v.querySelector('#rb-ciclo-bloco').hidden = porChat;
+    v.querySelector('#rb-puxar-bloco').hidden = !porChat;
+    const campo = (id, valor) => { const el = v.querySelector(id); if (document.activeElement !== el) el.value = valor; };
+    campo('#rb-vel', Number(f.velocidade).toFixed(1));
+    campo('#rb-ciclo', String(f.pausaCiclos));
+    const caixaLoop = v.querySelector('#rb-loop');
+    caixaLoop.checked = !!f.loopEscolha; // a escolha do usuário nunca se perde (§7)
+    caixaLoop.disabled = !loop.habilitado;
+    v.querySelector('#rb-loop-motivo').textContent = loop.habilitado ? '' : (loop.motivo || '');
+    v.querySelector('#rb-puxar').checked = !!f.puxarFila;
+  }
+
+  function telaLigarAjustes(v) {
+    const topo = v.querySelector('#rb-ajustes-topo');
+    const corpo = v.querySelector('#rb-ajustes-corpo');
+    topo.addEventListener('click', () => {
+      corpo.hidden = !corpo.hidden;
+      topo.setAttribute('aria-expanded', String(!corpo.hidden));
+      v.querySelector('.rb-seta').textContent = corpo.hidden ? '▾' : '▴';
+    });
+    v.querySelector('#rb-vel').addEventListener('change', e => {
+      const n = normalizarVelocidade(e.target.value);
+      tela.fluxo.velocidade = n.valor;
+      e.target.value = n.valor.toFixed(1);
+      v.querySelector('#rb-vel-aviso').textContent = n.aviso || '';
+      telaAtualizarAjustes();
+    });
+    v.querySelector('#rb-ciclo').addEventListener('change', e => {
+      const n = normalizarPausaCiclos(e.target.value);
+      tela.fluxo.pausaCiclos = n.valor;
+      e.target.value = String(n.valor);
+      v.querySelector('#rb-ciclo-aviso').textContent = n.aviso || '';
+      telaAtualizarAjustes();
+    });
+    v.querySelector('#rb-loop').addEventListener('change', e => {
+      tela.fluxo.loopEscolha = e.target.checked;
+      telaAtualizarAjustes();
+    });
+    v.querySelector('#rb-puxar').addEventListener('change', e => {
+      tela.fluxo.puxarFila = e.target.checked;
+      telaAtualizarAjustes();
+    });
   }
 
   function telaSeg(campo, opcoes, atual) {

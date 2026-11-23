@@ -578,3 +578,8 @@ sem revisão prévia e listada no relatório final.
   botões "Entendi", "Colocar Despausar antes do passo N" (só quando não houve envio antes, regra 8) e "Remover passo N".
   Para o Iniciar abrir o modal ele fica `aria-disabled` (clicável) quando o bloqueio é de ordem; nos demais bloqueios
   (sem modo, sem passos, campo vazio) continua `disabled`. Trocar o "Para quem?" nunca abre o modal sozinho.
+- Tarefa 19: feita (`docs/plano/layouts/tela-ajustes-tarefa19.png`). ⚙️ Ajustes recolhíveis com o resumo ao lado do título.
+  Velocidade (0.5–2.0, corrige com aviso), "Repetir em loop (sentinela)" (a escolha nunca se perde; desabilitado com o
+  motivo sem Atender em 1º; se o usuário desligou, recolocar o Atender não religa), pausa entre ciclos (0–60 s, "não muda
+  com a velocidade") e "Também puxar a fila (Atender)" só em 🆕/👥 (desligada por padrão). Em 🆕/👥 somem o loop e a pausa
+  entre ciclos. Tudo fica no fluxo ao trocar de modo e voltar.
