@@ -102,6 +102,34 @@ test('👥 [E,P]: antigos (lote) e novos (vigia) recebem exatamente 1 mensagem c
   });
 });
 
+// Bug do Blip real (23/11/2026): o bot fechava o menu ⋮ (open = false) mas achava que continuava aberto (as opções do
+// menu fechado ainda têm tamanho na tela) e clicava no ⋮ de novo, o que o reabria. Os menus ficavam abertos e
+// empilhados, e o menu aberto de um ticket pausado fazia os ativos seguintes parecerem pausados.
+const menusAbertos = (page) => page.evaluate(() => document.querySelectorAll('bds-menu[open]').length);
+
+test('👥 [E] com o menu do Blip real: o pausado é pulado, os ativos recebem 1 mensagem e nenhum menu fica aberto', async () => {
+  await comMotor({ pausadosIniciais: [0], menuComoBlip: true }, async (page) => {
+    const execucao = page.evaluate((f) => window.__rodBot.executarFluxo(f), fluxo('ambos', [E('Olá')]));
+    await page.waitForFunction(() => /Lote:/.test(document.querySelector('#ba-log').textContent), null, { timeout: 30000 });
+    await page.evaluate(() => window.__rodBot.parar());
+    await execucao;
+    const e = await estado(page);
+    assert.deepEqual(e.tickets.map((t) => t.mensagens.length), [0, 1, 1], await logDoPainel(page));
+    assert.match(await logDoPainel(page), /Lote: 2 enviados · 0 falhas/);
+    assert.equal(await menusAbertos(page), 0, 'nenhum menu ⋮ pode ficar aberto');
+  });
+});
+
+test('⏳ [D] com o menu do Blip real: despausa o pausado, o ativo fica como está e nenhum menu fica aberto', async () => {
+  await comMotor({ pausadosIniciais: [0], menuComoBlip: true }, async (page) => {
+    const r = await rodar(page, fluxo('aguardando', [D]));
+    assert.equal(r.status, 'concluido', JSON.stringify(r));
+    assert.ok((await estado(page)).tickets.every((t) => !t.pausado));
+    assert.equal(r.totais.despausados, 1);
+    assert.equal(await menusAbertos(page), 0, 'nenhum menu ⋮ pode ficar aberto');
+  });
+});
+
 test('⏳ Transferir para "Atendente Fictício": os tickets saem da lista', async () => {
   await comMotor({}, async (page) => {
     const r = await rodar(page, fluxo('aguardando', [T]));
