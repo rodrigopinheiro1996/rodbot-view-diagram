@@ -185,6 +185,15 @@
     telaAplicarAba(abaInicial());
   }
 
+  // ───────── Iniciar: roda uma CÓPIA do fluxo (editar o Montar durante a execução não muda o que está rodando)
+  async function telaIniciar() {
+    if (rodando || !podeIniciar(tela.fluxo)) return;
+    const copia = JSON.parse(JSON.stringify(tela.fluxo));
+    telaAplicarAba('acompanhar'); // §3: ao clicar em Iniciar o painel pula sozinho para Acompanhar
+    const r = await fluxoIniciar(copia, { nome: tela.item.nome });
+    if (r.status === 'recusado' || r.status === 'invalido') log(`⚠️ Não iniciou: ${r.motivo}.`);
+  }
+
   // ───────── Acompanhar (layout D): nome + ciclo, passo a passo do usuário, contadores do Auto (🆕/👥), Pausar/Parar e log
   function telaMontarAcompanhar() {
     rbVistas.acompanhar.innerHTML = `
@@ -205,6 +214,7 @@
       tela.exec = aplicarEventoStepper(tela.exec, ev);
     }
     telaRenderAcompanhar();
+    if (ev.tipo === 'inicio' || ev.tipo === 'fim') telaAtualizarMontar(); // Iniciar bloqueia enquanto roda
   }
 
   function telaRenderAcompanhar() {
@@ -341,7 +351,7 @@
         if (erro && erro.indice) telaAbrirModal(erro);
         return;
       }
-      log('▶ (tela nova em construção: o Iniciar será ligado ao motor na Tarefa 22)');
+      telaIniciar();
     });
     telaRenderMontar();
   }
@@ -716,8 +726,9 @@
       const faltando = validarCampos(passo).map(x => x.campo);
       card.querySelectorAll('[data-campo]').forEach(el => el.classList.toggle('rb-vazio', faltando.includes(el.dataset.campo)));
     });
-    const pode = podeIniciar(f);
+    const pode = podeIniciar(f) && !rodando;
     const btnIniciar = v.querySelector('#rb-iniciar');
+    btnIniciar.textContent = rodando ? '⏳ Fluxo rodando…' : '⚡ Iniciar fluxo';
     const temErroDePasso = (validacao.erros || []).some(e => e.indice);
     // bloqueado em qualquer caso; só fica "clicável" (aria-disabled) quando há erro de ordem, para abrir o modal
     btnIniciar.disabled = !pode && !temErroDePasso;
@@ -727,6 +738,7 @@
     const primeiro = erroDoModal(validacao.erros || []);
     const vazio = f.passos.findIndex(p => validarCampos(p).length);
     v.querySelector('#rb-iniciar-dica').textContent = pode ? ''
+      : rodando ? 'Só um fluxo por vez: acompanhe ou pare em Acompanhar'
       : !f.paraQuem ? 'Escolha para quem primeiro'
         : !f.passos.length ? 'Toque num ícone da paleta para começar'
           : primeiro && primeiro.indice ? 'Corrija o passo ' + primeiro.indice
