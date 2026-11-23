@@ -6,7 +6,7 @@ import { join } from 'node:path';
 import { RAIZ } from '../../scripts/build.mjs';
 import { carregarPuro } from '../util/carregar-puro.mjs';
 
-const TRECHOS = ['01-base.js', '02-piloto.js', '03-auto.js', '04-transferir.js', '05-fluxo.js', '99-fechar.js'];
+const TRECHOS = ['01-base.js', '03-auto.js', '04-transferir.js', '05-fluxo.js', '99-fechar.js'];
 const ler = (n) => readFileSync(join(RAIZ, 'src/js', n), 'utf8');
 
 // chamadas sleep(…)/pausaAcao(…) no código: arquivo + função de nível superior + valor
@@ -68,8 +68,8 @@ test('o que o §8 manda deixar de fora nunca está como "entra"', () => {
   for (const t of linhasDaTabela()) {
     if (sempreFora.some((r) => r.test(t.valor))) assert.match(t.decisao, /^não entra/, chave(t));
   }
-  const ciclos = linhasDaTabela().find((t) => t.funcao === 'executarPilotoLoop' && t.valor === '1000');
-  assert.match(ciclos.decisao, /^não entra/, 'pausa entre ciclos ignora a velocidade');
+  // a pausa entre ciclos é do motor: relogio.esperar usa sleep (nunca pausaAcao)
+  assert.match(ler('05-fluxo.js'), /relogio: \{ esperar: ms => sleep\(ms\) \}/, 'pausa entre ciclos ignora a velocidade');
   // e nenhum prazo/waitFor passa por pausaAcao
   for (const c of chamadasNoCodigo().filter((x) => x.tipo === 'pausaAcao')) {
     assert.doesNotMatch(c.valor, /AUTO_T\.(?!entreTickets)|TRANSF_T|waitFor/, chave(c));
@@ -81,8 +81,8 @@ test('o que o §8 manda incluir está como "entra"', () => {
     if (/^CONFIG\.delayAcoes$|^AUTO_T\.entreTickets$/.test(t.valor)) assert.match(t.decisao, /^entra/, chave(t));
   }
   const atender = linhasDaTabela().filter((t) => t.valor === '500' &&
-    ['executarAtendimentoAutomatico', 'pilotoEtapa1_PuxarFila', 'fluxoAtender'].includes(t.funcao));
-  assert.equal(atender.length, 3);
+    t.funcao === 'fluxoAtender');
+  assert.equal(atender.length, 1);
   for (const t of atender) assert.match(t.decisao, /^entra/, 'intervalo do Atender');
 });
 

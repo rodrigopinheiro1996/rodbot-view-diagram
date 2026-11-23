@@ -7,7 +7,6 @@ after(fecharNavegador);
 
 async function abrirMontar() {
   const { page, erros, fechar } = await abrirBlip();
-  await page.evaluate(() => localStorage.setItem('rf_rodbot_ui_nova_v1', '1'));
   await injetarBookmarklet(page);
   return { page, erros, fechar };
 }
@@ -139,10 +138,3 @@ test('o modal fica dentro do painel e cobre toda a altura visível', async () =>
   await fechar();
 });
 
-test('o painel antigo não ganha modal nem mudança sem o interruptor', async () => {
-  const { page, erros, fechar } = await abrirBlip();
-  await injetarBookmarklet(page);
-  assert.equal(await page.$('.rb-modal-ancora'), null);
-  assert.deepEqual(erros, []);
-  await fechar();
-});

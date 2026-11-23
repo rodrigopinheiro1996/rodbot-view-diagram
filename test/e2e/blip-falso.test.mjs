@@ -151,14 +151,12 @@ test('seletores do código (AUTO_SEL, TRANSF_SEL) encontram elementos na página
   await fechar();
 });
 
-test('o bookmarklet gerado injeta sem erro no console e abre as 5 abas antigas', async () => {
+test('o bookmarklet gerado injeta sem erro no console e abre a tela nova (Montar | Acompanhar)', async () => {
   const { page, erros, fechar } = await abrirBlip();
   await injetarBookmarklet(page);
   assert.ok(await page.isVisible('#ba-win'));
-  const abas = await page.$$eval('.ba-tab-btn', (els) => els.map((e) => e.dataset.baTab));
-  assert.deepEqual(abas, ['piloto', 'pasta', 'mensagem', 'fila', 'auto']);
-  await page.waitForTimeout(1200); // deixa o badge da fila atualizar (setInterval de 1 s)
-  assert.equal(await page.textContent('#ba-queue-count'), '3', 'o painel lê o contador da fila do Blip falso');
+  const abas = await page.$$eval('.rb-aba', (els) => els.map((e) => e.dataset.rbAba));
+  assert.deepEqual(abas, ['montar', 'acompanhar']);
   assert.deepEqual(erros, []);
   await fechar();
 });

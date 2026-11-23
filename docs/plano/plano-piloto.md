@@ -594,3 +594,14 @@ sem revisão prévia e listada no relatório final.
   `fim`); o Acompanhar mostra nome + "Ciclo #N" / "Vigiando" / "Concluído" / "Falha" / "Parado", o passo a passo do usuário
   (✓ Feito, Rodando com o chat atual em 🆕/👥, ✕ Falha com o motivo), os contadores do Auto só em 🆕/👥 (são os mesmos
   elementos do painel antigo, movidos para cá) e a barra Pausar/Parar + log de antes. Parado, mostra o fluxo do Montar.
+- Tarefa 22: feita, em 2 commits. (1) O Iniciar da tela roda uma **cópia** do fluxo pelo motor, pula para o Acompanhar e
+  fica bloqueado ("⏳ Fluxo rodando…") enquanto roda. (2) **Painel antigo e interruptor removidos**: saíram as 5 abas e os
+  painéis, `02-piloto.js` inteiro, o Piloto fixo, Envio/Pastas/Fila/Auto/Transferir em massa (`loop`, `obterCamposPainel`,
+  `percorrerItensFila`, `executar*Todos`, `executarAtendimentoAutomatico`, `executarTransferenciaAtendente`,
+  `autoBloqueiaOutras`…), a chave `rf_rodbot_ui_nova_v1` (a tela nova abre sempre; a chave não é lida nem criada) e o CSS das
+  abas. Ficaram as funções que os adaptadores usam (tag/finalizar, mover por ticket, menu, Auto como observador,
+  `tTransferirTicket`). Os contadores do Auto viraram um cartão próprio, mostrado no Acompanhar em 🆕/👥. `pausas.md`
+  regerado: 43 pausas (11 entram), as decisões das que ficaram não mudaram. Testes do painel antigo e "sem interruptor"
+  saíram; os fluxos que eles cobriam já estão nos testes do motor na página falsa. **Este é o primeiro HTML com a tela
+  nova** (`rodbot-final.html`, 722 KB; o bookmarklet codificado passou de 286 KB para 356 KB).
+  Ficou CSS morto do Piloto antigo (`.ba-pipeline`, `.ba-step`…) que não afeta nada; dá para limpar depois.

@@ -1,4 +1,4 @@
-// Tarefa 16: Para quem?, paleta e lista de passos na tela Montar (opção 2), atrás do interruptor.
+// Tarefa 16: Para quem?, paleta e lista de passos na tela Montar (opção 2).
 import test, { after } from 'node:test';
 import assert from 'node:assert/strict';
 import { abrirBlip, injetarBookmarklet, fecharNavegador } from './util.mjs';
@@ -7,7 +7,6 @@ after(fecharNavegador);
 
 async function abrirMontar() {
   const { page, erros, fechar } = await abrirBlip();
-  await page.evaluate(() => localStorage.setItem('rf_rodbot_ui_nova_v1', '1'));
   await injetarBookmarklet(page);
   return { page, erros, fechar };
 }
@@ -137,10 +136,3 @@ test('trocar o modo com Atender e Despausar: os passos ficam, em vermelho com o 
   await fechar();
 });
 
-test('o painel antigo continua igual sem o interruptor', async () => {
-  const { page, erros, fechar } = await abrirBlip();
-  await injetarBookmarklet(page);
-  assert.equal(await page.$('#rb-montar'), null);
-  assert.deepEqual(erros, []);
-  await fechar();
-});

@@ -7,7 +7,6 @@ after(fecharNavegador);
 
 async function abrir(config = {}) {
   const { page, erros, fechar } = await abrirBlip(config);
-  await page.evaluate(() => localStorage.setItem('rf_rodbot_ui_nova_v1', '1'));
   await injetarBookmarklet(page);
   return { page, erros, fechar };
 }

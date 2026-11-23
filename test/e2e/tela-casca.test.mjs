@@ -1,17 +1,16 @@
-// Tarefa 15: casca da tela nova (abas Montar | Acompanhar) atrás do interruptor provisório rf_rodbot_ui_nova_v1.
+// Tarefas 15 e 22: a tela nova (abas Montar | Acompanhar) é a única; o painel antigo de 5 abas foi removido.
 import test, { after } from 'node:test';
 import assert from 'node:assert/strict';
 import { abrirBlip, injetarBookmarklet, fecharNavegador } from './util.mjs';
 
 after(fecharNavegador);
 
-async function abrirPainel({ telaNova, abaAntiga } = {}) {
+async function abrirPainel({ abaAntiga, interruptorAntigo } = {}) {
   const { page, erros, fechar } = await abrirBlip();
-  await page.evaluate(({ telaNova, abaAntiga }) => {
-    if (telaNova) localStorage.setItem('rf_rodbot_ui_nova_v1', '1');
-    else localStorage.removeItem('rf_rodbot_ui_nova_v1');
+  await page.evaluate(({ abaAntiga, interruptorAntigo }) => {
     if (abaAntiga) localStorage.setItem('rf_rodbot_tab_v1', abaAntiga);
-  }, { telaNova, abaAntiga });
+    if (interruptorAntigo !== undefined) localStorage.setItem('rf_rodbot_ui_nova_v1', interruptorAntigo);
+  }, { abaAntiga, interruptorAntigo });
   await injetarBookmarklet(page);
   return { page, erros, fechar };
 }
@@ -19,26 +18,31 @@ async function abrirPainel({ telaNova, abaAntiga } = {}) {
 const exibido = (page, sel) => page.$eval(sel, (e) => getComputedStyle(e).display !== 'none');
 const visiveis = (page, sel) => page.$$eval(sel, (els) => els.filter((e) => e.offsetParent !== null).map((e) => e.textContent.trim()));
 
-test('interruptor ligado: só as duas abas novas aparecem; as 5 antigas somem', async () => {
-  const { page, erros, fechar } = await abrirPainel({ telaNova: true });
+test('o painel abre direto na tela nova: só as abas Montar e Acompanhar; não existem as 5 abas antigas', async () => {
+  const { page, erros, fechar } = await abrirPainel();
   assert.deepEqual(await visiveis(page, '.rb-aba'), ['🧩 Montar', '📊 Acompanhar']);
-  assert.deepEqual(await visiveis(page, '.ba-tab-btn'), []);
-  assert.deepEqual(await visiveis(page, '.ba-pane'), []);
+  for (const id of ['ba-tabs', 'ba-pane-piloto', 'ba-pane-pasta', 'ba-pane-mensagem', 'ba-pane-fila', 'ba-pane-auto',
+    'ba-play', 'ba-pilot-start', 'ba-claim-auto', 'ba-move-folder', 'ba-transfer-start', 'ba-auto-toggle', 'ba-pause-all']) {
+    assert.equal(await page.$('#' + id), null, id);
+  }
   assert.deepEqual(erros, []);
   await fechar();
 });
 
-test('interruptor desligado (padrão): painel antigo exatamente como era, sem a casca nova', async () => {
-  const { page, erros, fechar } = await abrirPainel({ telaNova: false });
-  assert.equal((await visiveis(page, '.ba-tab-btn')).length, 5);
-  assert.equal(await page.$('#rb-abas'), null);
-  assert.equal(await page.getAttribute('#ba-win', 'data-ui'), null);
-  assert.deepEqual(erros, []);
+test('a chave provisória rf_rodbot_ui_nova_v1 não muda nada (nem "0" volta ao painel antigo) e não é criada', async () => {
+  for (const valor of ['0', '1']) {
+    const { page, erros, fechar } = await abrirPainel({ interruptorAntigo: valor });
+    assert.deepEqual(await visiveis(page, '.rb-aba'), ['🧩 Montar', '📊 Acompanhar'], valor);
+    assert.deepEqual(erros, []);
+    await fechar();
+  }
+  const { page, fechar } = await abrirPainel();
+  assert.equal(await page.evaluate(() => localStorage.getItem('rf_rodbot_ui_nova_v1')), null);
   await fechar();
 });
 
 test('aba antiga salva ("fila") abre em Montar', async () => {
-  const { page, fechar } = await abrirPainel({ telaNova: true, abaAntiga: 'fila' });
+  const { page, fechar } = await abrirPainel({ abaAntiga: 'fila' });
   assert.equal(await page.getAttribute('#ba-win', 'data-rb-aba'), 'montar');
   assert.ok(await exibido(page, '#rb-montar'));
   assert.ok(!(await exibido(page, '#rb-acompanhar')));
@@ -46,7 +50,7 @@ test('aba antiga salva ("fila") abre em Montar', async () => {
 });
 
 test('Montar fica limpo (sem log); Acompanhar mostra Pausar/Parar e o log', async () => {
-  const { page, fechar } = await abrirPainel({ telaNova: true });
+  const { page, fechar } = await abrirPainel();
   assert.ok(!(await page.isVisible('#ba-log')));
   await page.click('#rb-aba-acompanhar');
   assert.ok(await exibido(page, '#rb-acompanhar'));
@@ -58,7 +62,7 @@ test('Montar fica limpo (sem log); Acompanhar mostra Pausar/Parar e o log', asyn
 });
 
 test('cabeçalho igual (rod bot, status, Tema, fechar) e o tema continua trocando', async () => {
-  const { page, fechar } = await abrirPainel({ telaNova: true });
+  const { page, fechar } = await abrirPainel();
   assert.match(await page.textContent('#ba-hdr .ba-brand'), /rod bot/);
   assert.equal(await page.textContent('#ba-st'), 'Parado');
   await page.click('#ba-theme-btn');
@@ -72,7 +76,7 @@ test('cabeçalho igual (rod bot, status, Tema, fechar) e o tema continua trocand
 });
 
 test('abrir duas vezes não duplica o painel nem a casca', async () => {
-  const { page, erros, fechar } = await abrirPainel({ telaNova: true });
+  const { page, erros, fechar } = await abrirPainel();
   await injetarBookmarklet(page);
   assert.equal(await page.$$eval('#blip-auto-panel', (e) => e.length), 1);
   assert.equal(await page.$$eval('#rb-abas', (e) => e.length), 1);

@@ -8,7 +8,6 @@ after(fecharNavegador);
 async function abrirMontar(antes) {
   const { page, erros, fechar } = await abrirBlip();
   await page.evaluate((r) => {
-    localStorage.setItem('rf_rodbot_ui_nova_v1', '1');
     if (r) localStorage.setItem('rf_rodbot_recent_folders_v1', JSON.stringify(r));
   }, antes);
   await injetarBookmarklet(page);

@@ -16,10 +16,20 @@ test('motor e adaptadores não usam o Piloto antigo nem os campos das abas', () 
   }
 });
 
-test('passo2_tag aceita a tag por parâmetro e, sem ele, continua lendo a caixa antiga', () => {
+test('passo2_tag só recebe a tag por parâmetro (não existe mais a caixa antiga)', () => {
   const c = ler('01-base.js');
   assert.match(c, /async function passo2_tag\(tagParam\)/);
-  assert.match(c, /tagParam !== undefined \? String\(tagParam\) : tagEl\.value/);
+  assert.doesNotMatch(c, /tagEl/);
+});
+
+test('o painel antigo e o interruptor provisório saíram do código (Tarefa 22)', () => {
+  const tudo = listarTrechos().map(ler).join('\n');
+  for (const nome of ['executarPilotoLoop', 'pilotoEtapa', 'autoBloqueiaOutras', 'obterCamposPainel',
+    'rf_rodbot_ui_nova_v1', 'ba-pane-', 'ba-tab-btn', 'executarTransferenciaAtendente', 'executarModoEsperaTodos',
+    'executarEscreverParaTodos', 'executarMoverParaPastaTodos', 'executarAtendimentoAutomatico']) {
+    assert.ok(!tudo.includes(nome), nome);
+  }
+  assert.ok(!listarTrechos().includes('02-piloto.js'));
 });
 
 test('o motor, o validador e os adaptadores estão no bundle, antes do fechamento da IIFE', () => {

@@ -1,16 +1,10 @@
   /* ========================================================
      TELA NOVA — MONTAR | ACOMPANHAR (Tarefas 15–21)
      Layout escolhido pelo BM: opção 2 · compacta (docs/plano/layouts/opcao-montar-2.png); Acompanhar como o layout D.
-     PROVISÓRIO: só aparece com localStorage.rf_rodbot_ui_nova_v1 = '1'. Sem a chave, o painel antigo fica
-     exatamente como era. Na Tarefa 22 o painel antigo e este interruptor são removidos.
+     É a única tela do painel (o painel antigo de 5 abas foi removido na Tarefa 22).
      ======================================================== */
 
-  const telaNova = (() => {
-    try { return localStorage.getItem('rf_rodbot_ui_nova_v1') === '1'; } catch { return false; }
-  })();
-
   styleEl.textContent += `
-    #ba-win[data-ui="nova"] #ba-tabs, #ba-win[data-ui="nova"] .ba-pane { display: none !important; }
     #ba-win[data-ui="nova"][data-rb-aba="montar"] #ba-run-bar,
     #ba-win[data-ui="nova"][data-rb-aba="montar"] .ba-telemetry,
     #ba-win[data-ui="nova"][data-rb-aba="montar"] #ba-log { display: none !important; }
@@ -782,5 +776,5 @@
     });
   }
 
-  if (telaNova) telaMontarCasca();
+  telaMontarCasca();
 

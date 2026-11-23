@@ -8,7 +8,6 @@ after(fecharNavegador);
 
 async function abrir(config = {}) {
   const { page, erros, fechar } = await abrirBlip(config);
-  await page.evaluate(() => localStorage.setItem('rf_rodbot_ui_nova_v1', '1'));
   await injetarBookmarklet(page, { teste: true });
   return { page, erros, fechar };
 }
@@ -114,11 +113,10 @@ test('🆕: topo "Vigiando", o passo mostra o chat atual e os contadores aparece
   await fechar();
 });
 
-test('sem o interruptor: o painel antigo não ganha Acompanhar e os contadores do Auto ficam na aba Auto', async () => {
-  const { page, erros, fechar } = await abrirBlip();
-  await injetarBookmarklet(page);
-  assert.equal(await page.$('#rb-stepper'), null);
-  assert.ok(await page.$eval('#ba-auto-count', (e) => !!e.closest('#ba-pane-auto')));
+test('os contadores do Auto ficam no Acompanhar (não existe mais a aba Auto)', async () => {
+  const { page, erros, fechar } = await abrir();
+  assert.ok(await page.$eval('#ba-auto-count', (e) => !!e.closest('#rb-acompanhar')));
+  assert.equal(await page.$('#ba-pane-auto'), null);
   assert.deepEqual(erros, []);
   await fechar();
 });

@@ -7,7 +7,6 @@ after(fecharNavegador);
 
 async function abrirMontar() {
   const { page, erros, fechar } = await abrirBlip();
-  await page.evaluate(() => localStorage.setItem('rf_rodbot_ui_nova_v1', '1'));
   await injetarBookmarklet(page);
   return { page, erros, fechar };
 }
@@ -130,10 +129,3 @@ test('as escolhas dos Ajustes ficam no fluxo ao trocar de modo e voltar', async 
   await fechar();
 });
 
-test('o painel antigo não ganha Ajustes sem o interruptor', async () => {
-  const { page, erros, fechar } = await abrirBlip();
-  await injetarBookmarklet(page);
-  assert.equal(await page.$('#rb-ajustes-topo'), null);
-  assert.deepEqual(erros, []);
-  await fechar();
-});

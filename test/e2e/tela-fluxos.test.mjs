@@ -8,7 +8,6 @@ after(fecharNavegador);
 async function abrirMontar({ msgAuto, esperarPrimeiro = true } = {}) {
   const { page, erros, fechar } = await abrirBlip();
   await page.evaluate((m) => {
-    localStorage.setItem('rf_rodbot_ui_nova_v1', '1');
     if (m) localStorage.setItem('rf_rodbot_auto_msg_v1', m);
   }, msgAuto);
   await injetarBookmarklet(page);
@@ -205,10 +204,3 @@ test('o nome do fluxo aparece como texto (sem HTML)', async () => {
   await fechar();
 });
 
-test('o painel antigo não ganha 💾 nem seletor sem o interruptor', async () => {
-  const { page, erros, fechar } = await abrirBlip();
-  await injetarBookmarklet(page);
-  assert.equal(await page.$('#rb-salvar'), null);
-  assert.deepEqual(erros, []);
-  await fechar();
-});

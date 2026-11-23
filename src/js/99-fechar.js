@@ -21,7 +21,5 @@
   }
   btnClose.onclick = fecharPainel;
   window.__rodBotCleanup = fecharPainel;
-  btnPauseAll.onclick = () => { if (!autoBloqueiaOutras()) executarModoEsperaTodos('pausar'); };
-  btnUnpauseAll.onclick = () => { if (!autoBloqueiaOutras()) executarModoEsperaTodos('despausar'); };
-  log("🤖 rod bot pronto! Escolha uma aba acima.");
+  log("🤖 rod bot pronto! Monte o fluxo e toque em Iniciar.");
 })();;void 0;
