@@ -9,7 +9,8 @@
  *   MEDIDO pelo BM no Blip real (23/11/2026, teste-fechar-menu), configurável: menuComoBlip. O bds-menu tem no
  *     shadow `div.menu.menu__right` (+ `menu__open` quando aberto) e `div.outzone`. Fecham o menu: `open = false`,
  *     clique na outzone e clique no ⋮ (que alterna). NÃO fecham: Escape e cliques no body. Abrir um ⋮ não fecha os
- *     outros. INFERIDO (a confirmar): fechado, o menu fica transparente e as opções continuam com tamanho na tela.
+ *     outros. Fechado, o bds-menu fica transparente e as opções continuam com tamanho na tela (medido 23/11/2026 nos
+ *     menus de pasta, mesmo componente: bds-menu-action fechado com 240x56).
  *   SUPOSIÇÕES da spec (§11), configuráveis: S1 mover tira da lista; S2 pausado pode ser movido/transferido;
  *     S3 pausado não recebe mensagem (campo de texto desabilitado).
  *
