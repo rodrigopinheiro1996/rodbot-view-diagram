@@ -559,3 +559,7 @@ sem revisão prévia e listada no relatório final.
   bundle até a tela usar. A mensagem migrada fica guardada na própria marca `rf_rodbot_migracao_v1` e entra no ⭐ Auto
   clássico por `criarFluxosSalvos(arm, { mensagemAuto })`; nenhuma chave antiga é lida além da mensagem do Auto, nem
   apagada ou alterada.
+- Tarefa 15: feita. `refactor(mover)` renomeou o fechamento para `99-fechar.js` (sempre o último trecho). `06-tela.js`
+  monta a casca (abas 🧩 Montar | 📊 Acompanhar, cores pelas variáveis do tema) só com `rf_rodbot_ui_nova_v1 = '1'`;
+  sem a chave nada muda. Montar esconde a barra de execução e o log; Acompanhar mostra. `fluxos-salvos.js` e
+  `migracao.js` entram no bundle (a tela usa `abaInicial`).

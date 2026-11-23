@@ -8,4 +8,7 @@ puro/validar-fluxo.js
 puro/validar-campos.js
 puro/motor.js
 05-fluxo.js
+puro/fluxos-salvos.js
+puro/migracao.js
+06-tela.js
 99-fechar.js
