@@ -10,5 +10,6 @@ puro/motor.js
 05-fluxo.js
 puro/fluxos-salvos.js
 puro/migracao.js
+puro/passos-tela.js
 06-tela.js
 99-fechar.js

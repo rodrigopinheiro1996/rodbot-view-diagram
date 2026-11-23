@@ -563,3 +563,8 @@ sem revisão prévia e listada no relatório final.
   monta a casca (abas 🧩 Montar | 📊 Acompanhar, cores pelas variáveis do tema) só com `rf_rodbot_ui_nova_v1 = '1'`;
   sem a chave nada muda. Montar esconde a barra de execução e o log; Acompanhar mostra. `fluxos-salvos.js` e
   `migracao.js` entram no bundle (a tela usa `abaInicial`).
+- Tarefa 16: feita (`docs/plano/layouts/tela-montar-tarefa16.png`). `puro/passos-tela.js` (títulos, resumo de uma linha,
+  novo passo, mover/remover) e a tela Montar em `06-tela.js`: seletor de fluxos + "＋", "Para quem?" em pílulas, paleta
+  em faixa, cartões com ▲ ▼ ✕ (um aberto por vez), passo vermelho com o motivo, Iniciar com a dica do que falta.
+  Sem modo, tocar na paleta faz o "Para quem?" piscar e não adiciona. O 💾 e o aviso de alterações ficam na Tarefa 20;
+  o caso "Despausar em 🆕 fica vermelho" é testado na Tarefa 17 (precisa do campo Pausar | Despausar).
