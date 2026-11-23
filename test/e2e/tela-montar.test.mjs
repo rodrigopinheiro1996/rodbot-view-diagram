@@ -15,7 +15,11 @@ const titulos = (page) => page.$$eval('#rb-passos .rb-passo', (els) =>
   els.map((e) => e.querySelector('.rb-num').textContent + ' · ' + e.querySelector('.rb-tit-txt').textContent));
 const novo = async (page) => page.click('#rb-novo');
 const pq = (page, modo) => page.click(`.rb-pq[data-pq="${modo}"]`);
-const add = (page, tipo) => page.click(`#rb-paleta [data-tipo="${tipo}"]`);
+// adiciona pela paleta; se o passo quebrar a ordem o modal abre (Tarefa 18): aqui só interessa a lista, então fecha
+const add = async (page, tipo) => {
+  await page.click(`#rb-paleta [data-tipo="${tipo}"]`);
+  if (await page.$('.rb-modal')) await page.click('.rb-modal-btns button:has-text("Entendi")');
+};
 
 test('abre no ⭐ Piloto clássico com os 4 passos e o Iniciar bloqueado (mensagem e pasta vazias)', async () => {
   const { page, erros, fechar } = await abrirMontar();
@@ -117,7 +121,10 @@ test('trocar o modo com Atender e Despausar: os passos ficam, em vermelho com o 
   await page.evaluate(() => {
     // monta [A, E(Oi), P, D] direto no estado da tela para não depender dos campos (Tarefa 17)
     const sel = document.querySelector('#rb-paleta [data-tipo="espera"]');
-    sel.click(); sel.click();
+    sel.click(); sel.click(); // o modal da regra 5 abre; os testes do modal estão em tela-modal.test.mjs
+  });
+  await page.evaluate(() => {
+    document.querySelector('.rb-modal-btns button')?.click();
   });
   // ainda sem campo de modo da Espera (Tarefa 17): os dois Esperas são Pausar → a regra 5 marca o 4º
   assert.equal(await page.$$eval('.rb-passo.erro', (e) => e.length), 1);

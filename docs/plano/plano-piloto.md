@@ -573,3 +573,8 @@ sem revisão prévia e listada no relatório final.
   🆕/👥), Mover (pasta + chips nv2, default e recentes), Transferir (nome exato) e Velocidade do passo (aceita vírgula;
   fora da faixa corrige com aviso; selo ×N.N no título). Digitar não recria o cartão (o foco fica); campo obrigatório
   vazio fica vermelho e bloqueia o Iniciar; texto do usuário nunca vira HTML.
+- Tarefa 18: feita (`docs/plano/layouts/tela-modal-tarefa18.png`). Modal de ordem inválida como o `layout-M.png`: abre ao
+  adicionar um passo que quebra a ordem e ao clicar em Iniciar; mostra o erro do 1º passo com erro (regra 10);
+  botões "Entendi", "Colocar Despausar antes do passo N" (só quando não houve envio antes, regra 8) e "Remover passo N".
+  Para o Iniciar abrir o modal ele fica `aria-disabled` (clicável) quando o bloqueio é de ordem; nos demais bloqueios
+  (sem modo, sem passos, campo vazio) continua `disabled`. Trocar o "Para quem?" nunca abre o modal sozinho.

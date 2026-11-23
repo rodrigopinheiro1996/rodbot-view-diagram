@@ -76,6 +76,19 @@
     .rb-selo { font-size: 11px; font-weight: 700; padding: 1px 7px; border-radius: 999px; background: #2b2210;
       color: #f5b041; border: 1px solid #5d4517; }
     .rb-selo:empty { display: none; }
+    .rb-modal-ancora { position: sticky; top: 0; height: 0; z-index: 60; overflow: visible; }
+    .rb-modal-fundo { position: absolute; top: 0; left: 0; right: 0; display: grid; place-items: center; padding: 18px;
+      background: rgba(0, 0, 0, 0.62); border-radius: inherit; }
+    .rb-modal { width: 100%; box-sizing: border-box; padding: 16px; border-radius: 14px; background: #151b20;
+      border: 1px solid #6b2b2b; box-shadow: 0 20px 50px rgba(0, 0, 0, 0.8); color: var(--rb-text); }
+    .rb-modal h3 { margin: 0 0 8px; color: #ff8a8a; font-size: 16px; font-weight: 700; }
+    .rb-modal-linha { font-size: 14px; margin: 0 0 8px; }
+    .rb-modal-detalhe { color: var(--rb-muted); font-size: 13px; margin: 0 0 14px; line-height: 1.45; }
+    .rb-modal-btns { display: flex; gap: 10px; flex-wrap: wrap; }
+    .rb-modal-btns button { flex: 1; min-width: 120px; padding: 11px 8px; border-radius: 11px; font-weight: 700; font-size: 14px; cursor: pointer;
+      border: 1px solid var(--rb-border-strong); background: var(--rb-elevated); color: var(--rb-text); font-family: inherit; }
+    .rb-modal-btns button.rb-primario { background: var(--rb-accent); color: var(--rb-on-accent); border-color: transparent; }
+    .rb-cta.rb-bloqueado { opacity: 0.45; }
     .rb-cta { padding: 12px; border-radius: 12px; border: 0; background: var(--rb-accent); color: var(--rb-on-accent);
       font-weight: 800; font-size: 15px; font-family: inherit; cursor: pointer; }
     .rb-cta:disabled { opacity: 0.45; cursor: not-allowed; }
@@ -198,7 +211,12 @@
     });
     telaLigarCampos(v.querySelector('#rb-passos'));
     v.querySelector('#rb-iniciar').addEventListener('click', () => {
-      if (!podeIniciar(tela.fluxo)) return;
+      if (!podeIniciar(tela.fluxo)) {
+        // ordem inválida: o botão continua clicável para o modal explicar o motivo (§6)
+        const erro = erroDoModal((validarFluxo(tela.fluxo).erros || []));
+        if (erro && erro.indice) telaAbrirModal(erro);
+        return;
+      }
       log('▶ (tela nova em construção: o Iniciar será ligado ao motor na Tarefa 22)');
     });
     telaRenderMontar();
@@ -220,6 +238,63 @@
     f.passos.push(novoPasso(tipo));
     tela.aberto = f.passos.length - 1;
     telaRenderMontar();
+    const doNovo = (validarFluxo(f).erros || []).filter(e => e.indice === f.passos.length);
+    if (doNovo.length) telaAbrirModal(erroDoModal(doNovo));
+  }
+
+  // ───────── Modal de ordem inválida (layout-M)
+  function telaFecharModal() {
+    const m = win.querySelector('.rb-modal-ancora');
+    if (m) m.remove();
+  }
+
+  function telaAbrirModal(erro) {
+    telaFecharModal();
+    const t = textoModal(erro, tela.fluxo.passos);
+    const ancora = document.createElement('div');
+    ancora.className = 'rb-modal-ancora';
+    ancora.innerHTML = `
+      <div class="rb-modal-fundo">
+        <div class="rb-modal" role="dialog" aria-modal="true" aria-labelledby="rb-modal-tit">
+          <h3 id="rb-modal-tit"></h3>
+          <p class="rb-modal-linha"></p>
+          <p class="rb-modal-detalhe"></p>
+          <div class="rb-modal-btns"></div>
+        </div>
+      </div>`;
+    ancora.querySelector('h3').textContent = '⛔ ' + t.titulo;
+    ancora.querySelector('.rb-modal-linha').textContent = t.linha;
+    ancora.querySelector('.rb-modal-detalhe').textContent = t.detalhe;
+    const btns = ancora.querySelector('.rb-modal-btns');
+    const botao = (texto, classe, acao) => {
+      const b = document.createElement('button');
+      b.type = 'button';
+      b.textContent = texto;
+      if (classe) b.className = classe;
+      b.addEventListener('click', () => { telaFecharModal(); if (acao) acao(); });
+      btns.appendChild(b);
+      return b;
+    };
+    const entendi = botao('Entendi', '', null);
+    if (erro.sugestao) {
+      botao(erro.sugestao.texto, '', () => {
+        tela.fluxo.passos.splice(erro.sugestao.indice - 1, 0, novoPasso('espera'));
+        tela.fluxo.passos[erro.sugestao.indice - 1].modo = 'despausar';
+        tela.aberto = null;
+        telaRenderMontar();
+      });
+    }
+    if (erro.correcao && erro.correcao.acao === 'remover') {
+      botao(erro.correcao.texto, 'rb-primario', () => {
+        tela.fluxo.passos = removerPasso(tela.fluxo.passos, erro.correcao.indice - 1);
+        tela.aberto = null;
+        telaRenderMontar();
+      });
+    }
+    win.insertBefore(ancora, win.firstChild);
+    ancora.querySelector('.rb-modal-fundo').style.height = win.clientHeight + 'px';
+    entendi.focus();
+    ancora.addEventListener('keydown', e => { if (e.key === 'Escape') telaFecharModal(); });
   }
 
   function telaRenderMontar() {
@@ -341,7 +416,13 @@
       card.querySelectorAll('[data-campo]').forEach(el => el.classList.toggle('rb-vazio', faltando.includes(el.dataset.campo)));
     });
     const pode = podeIniciar(f);
-    v.querySelector('#rb-iniciar').disabled = !pode;
+    const btnIniciar = v.querySelector('#rb-iniciar');
+    const temErroDePasso = (validacao.erros || []).some(e => e.indice);
+    // bloqueado em qualquer caso; só fica "clicável" (aria-disabled) quando há erro de ordem, para abrir o modal
+    btnIniciar.disabled = !pode && !temErroDePasso;
+    btnIniciar.classList.toggle('rb-bloqueado', !pode);
+    if (pode) btnIniciar.removeAttribute('aria-disabled');
+    else btnIniciar.setAttribute('aria-disabled', 'true');
     const primeiro = erroDoModal(validacao.erros || []);
     const vazio = f.passos.findIndex(p => validarCampos(p).length);
     v.querySelector('#rb-iniciar-dica').textContent = pode ? ''

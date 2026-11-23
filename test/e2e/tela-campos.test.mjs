@@ -77,7 +77,8 @@ test('Espera: Pausar | Despausar em ⏳; Despausar some em 🆕 e 👥 e o passo
   await page.click('#rb-novo');
   await page.click('.rb-pq[data-pq="aguardando"]');
   await page.click('#rb-paleta [data-tipo="espera"]');
-  await page.click('#rb-paleta [data-tipo="espera"]');
+  await page.click('#rb-paleta [data-tipo="espera"]'); // [P, P]: abre o modal da regra 5
+  await page.click('.rb-modal-btns button:has-text("Entendi")');
   await page.click(`${card(1)} .rb-seg [data-v="despausar"]`);
   assert.equal(await tit(page, 1), '▶️ Despausar');
   assert.equal(await page.$$eval('.rb-passo.erro', (e) => e.length), 0, '[P, D] é válido');
