@@ -555,3 +555,7 @@ sem revisão prévia e listada no relatório final.
   Decisões: o Mover do ⭐ Piloto clássico também começa com a pasta **vazia** (vermelha até escolher um chip), como a
   mensagem; nomes não se repetem (sem diferenciar maiúsculas) e não podem ser o de um modelo; todo passo tem
   `velocidade: null` (= a do fluxo).
+- Tarefa 14: feita. `src/js/puro/migracao.js` (`migrarPrimeiraAbertura`, `mensagemAutoMigrada`, `abaInicial`), fora do
+  bundle até a tela usar. A mensagem migrada fica guardada na própria marca `rf_rodbot_migracao_v1` e entra no ⭐ Auto
+  clássico por `criarFluxosSalvos(arm, { mensagemAuto })`; nenhuma chave antiga é lida além da mensagem do Auto, nem
+  apagada ou alterada.

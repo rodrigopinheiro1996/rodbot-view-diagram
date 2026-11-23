@@ -6,7 +6,8 @@
  *   rf_rodbot_fluxo_atual_v1. 💾 sempre cria um fluxo NOVO com nome.
  * - Mensagens dos modelos começam VAZIAS (nunca se preenche MENSAGEM_PADRAO sozinho).
  *
- * criarFluxosSalvos(armazenamento, { gerarId? }) → { listar, atual, salvar, apagar, marcarAtual, novoVazio }
+ * criarFluxosSalvos(armazenamento, { gerarId?, mensagemAuto? }) → { listar, atual, salvar, apagar, marcarAtual, novoVazio }
+ *   mensagemAuto: a mensagem migrada do Auto antigo (Tarefa 14) para o Enviar do ⭐ Auto clássico; padrão ''.
  *   item: { id, nome, modelo, fluxo }
  */
 
@@ -18,7 +19,7 @@ function fluxoBase(paraQuem, passos) {
   return { paraQuem, loopEscolha: true, pausaCiclos: 1, velocidade: 1, puxarFila: false, passos };
 }
 
-function fluxosModelos() {
+function fluxosModelos(mensagemAuto) {
   return [
     {
       id: 'modelo:piloto', nome: '⭐ Piloto clássico', modelo: true,
@@ -32,7 +33,7 @@ function fluxosModelos() {
     {
       id: 'modelo:auto', nome: '⭐ Auto clássico', modelo: true,
       fluxo: fluxoBase('caindo', [
-        { tipo: 'enviar', modo: 'so', mensagem: '', tag: '', velocidade: null },
+        { tipo: 'enviar', modo: 'so', mensagem: mensagemAuto || '', tag: '', velocidade: null },
         { tipo: 'espera', modo: 'pausar', velocidade: null },
       ]),
     },
@@ -52,6 +53,8 @@ function temAlteracoes(editado, original) {
 }
 
 function criarFluxosSalvos(armazenamento, opcoes) {
+  const mensagemAuto = (opcoes && opcoes.mensagemAuto) || '';
+  const modelos = () => fluxosModelos(mensagemAuto);
   const gerarId = (opcoes && opcoes.gerarId) || (() => 'u' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6));
 
   function lerUsuario() {
@@ -73,7 +76,7 @@ function criarFluxosSalvos(armazenamento, opcoes) {
   }
 
   function listar() {
-    return fluxoCopia(fluxosModelos().concat(lerUsuario().map((x) => ({ id: x.id, nome: x.nome, modelo: false, fluxo: x.fluxo }))));
+    return fluxoCopia(modelos().concat(lerUsuario().map((x) => ({ id: x.id, nome: x.nome, modelo: false, fluxo: x.fluxo }))));
   }
 
   function atual() {
@@ -91,7 +94,7 @@ function criarFluxosSalvos(armazenamento, opcoes) {
     const limpo = String(nome || '').trim();
     if (!limpo) return { ok: false, motivo: 'Dê um nome ao fluxo' };
     const chave = fluxoNomeChave(limpo);
-    if (fluxosModelos().some((x) => fluxoNomeChave(x.nome) === chave)) {
+    if (modelos().some((x) => fluxoNomeChave(x.nome) === chave)) {
       return { ok: false, motivo: 'Esse nome é de um modelo ⭐; escolha outro' };
     }
     const usuario = lerUsuario();
@@ -104,7 +107,7 @@ function criarFluxosSalvos(armazenamento, opcoes) {
   }
 
   function apagar(id) {
-    if (fluxosModelos().some((x) => x.id === id)) return { ok: false, motivo: 'Modelos ⭐ não podem ser apagados' };
+    if (modelos().some((x) => x.id === id)) return { ok: false, motivo: 'Modelos ⭐ não podem ser apagados' };
     const usuario = lerUsuario();
     const resto = usuario.filter((x) => x.id !== id);
     if (resto.length === usuario.length) return { ok: false, motivo: 'Fluxo não encontrado' };
