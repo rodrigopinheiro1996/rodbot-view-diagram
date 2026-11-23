@@ -1,0 +1,65 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<title>Blip falso (dados fictícios)</title>
+<!-- Página de teste. Imita SÓ o que o rod bot procura no Blip Desk (seletores de AUTO_SEL, TRANSF_SEL e das
+     funções antigas). Nenhum dado real. Estrutura de "inferido" vs "verificado": ver blip-falso.js. -->
+<style>
+  body { margin: 0; font: 13px/1.4 system-ui, sans-serif; background: #f4f6f8; color: #1f2937; }
+  #app { display: flex; height: 100vh; }
+  #sidenav-div { width: 320px; display: flex; flex-direction: column; border-right: 1px solid #d0d7de; background: #fff; }
+  main { flex: 1; display: flex; flex-direction: column; }
+  .topo { padding: 8px; display: flex; gap: 8px; align-items: center; border-bottom: 1px solid #e5e7eb; }
+  .infinite-scroll { height: 360px; overflow-y: auto; }
+  article.chat-list-item { position: relative; padding: 10px 12px; border-bottom: 1px solid #eef0f2; cursor: pointer; }
+  article.chat-list-item[aria-selected="true"] { background: #e0f2fe; }
+  .ticket-menu { position: absolute; right: 8px; top: 6px; }
+  bds-menu { display: block; position: absolute; right: 0; z-index: 5; background: #fff; border: 1px solid #ccc; min-width: 180px; }
+  bds-menu:not([open]) { display: none; }
+  bds-menu-action { display: block; }
+  [hidden] { display: none !important; }
+  .folder-submenu-container { display: none; padding-left: 12px; }
+  .folder-submenu-container.aberto { display: block; }
+  .custom-submenu-item { display: block; padding: 2px 0; }
+  .folder-list { padding: 6px 8px; color: #6b7280; }
+  #pane-chat-div { flex: 1; display: flex; flex-direction: column; padding: 8px; }
+  .msgs { flex: 1; overflow-y: auto; }
+  .msg { background: #dcfce7; margin: 4px 0; padding: 4px 8px; border-radius: 6px; }
+  textarea#text-input { width: 100%; height: 60px; }
+  .modal { position: fixed; left: 30%; top: 20%; width: 40%; background: #fff; border: 1px solid #888; padding: 12px; z-index: 50; }
+  bds-button, bds-button-icon, bds-radio, bds-autocomplete, bds-select-chips, bds-chip-tag, bds-dropdown { display: inline-block; }
+  bds-select-option { display: block; }
+</style>
+</head>
+<body>
+<div id="app">
+  <div id="sidenav-div">
+    <div class="topo">
+      <bds-button id="claim-ticket-button">Atender</bds-button>
+      <span>Fila: <span id="waiting-tickets-count">0</span></span>
+    </div>
+    <div class="topo">Busca</div>
+    <div>
+      <div>
+        <div>
+          <div class="topo">
+            <bds-dropdown id="ticket-filter-dropdown"><div><bds-chip-tag></bds-chip-tag></div></bds-dropdown>
+          </div>
+          <div class="folder-list" id="lista-pastas"></div>
+          <div>
+            <div>
+              <div class="infinite-scroll chat-list" id="lista-tickets"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <main>
+    <div id="pane-chat-div"></div>
+  </main>
+</div>
+<script src="blip-falso.js"></script>
+</body>
+</html>

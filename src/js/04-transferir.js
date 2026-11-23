@@ -23,9 +23,6 @@
     opcao: 'bds-select-option',
     confirmar: 'bds-button#confirm-transfer-btn'
   };
-  const transfNomeEl = document.getElementById('ba-transfer-name');
-  const transfStatusEl = document.getElementById('ba-transfer-status');
-  const btnTransfer = document.getElementById('ba-transfer-start');
   let painelFechado = false;
   class TransfInterrompido extends Error {}
   class TransfSuspenso extends Error {}
@@ -38,10 +35,6 @@
   }
   function tVisivel(el) {
     return !!el && el.isConnected && isElementoVisivel(el);
-  }
-  function tStatus(texto, tom = '') {
-    transfStatusEl.textContent = texto;
-    transfStatusEl.setAttribute('data-tone', tom);
   }
   // Espera por condição; o tempo pausado não conta. Antes da confirmação, "Parar" interrompe a espera.
   async function tEsperar(fn, timeout, paravel = true) {
@@ -354,99 +347,4 @@
     }
   }
 
-  async function executarTransferenciaAtendente() {
-    if (rodando || autoBloqueiaOutras()) return;
-    const nome = (transfNomeEl.value || '').trim();
-    if (!nome) {
-      tStatus('Informe o nome do atendente.', 'err');
-      log('⚠️ Digite o nome do atendente antes de transferir.');
-      transfNomeEl.focus();
-      return;
-    }
-    const alvo = tNorm(nome);
-    rodando = true;
-    pausado = false;
-    modoAtual = 'transferir';
-    ativarWakeLock();
-    atualizarBotoesEstado(true, `Transferindo → ${nome}`);
-    cntEl.textContent = '0';
-    tStatus(`Transferindo para "${nome}"...`);
-    const assinaturaInicial = autoAssinaturaFiltro(autoResolverContador());
-    const feitos = new Set();
-    let transferidos = 0;
-    log(`🔁 Transferência em massa para "${nome}" iniciada (sempre o primeiro da lista).`);
-    try {
-      while (rodando) {
-        await tAntesDeClicar();
-        const assinatura = autoAssinaturaFiltro(autoResolverContador());
-        if (assinaturaInicial !== null && assinatura !== null && assinatura !== assinaturaInicial) {
-          throw new TransfSuspenso('o filtro/fila da lista mudou durante a execução');
-        }
-        const id = await tPrimeiroTicket();
-        if (!id) {
-          log('🏁 Lista vazia: nenhum ticket restante.');
-          break;
-        }
-        if (feitos.has(id)) throw new TransfSuspenso(`o ticket #${id} voltou ao topo da lista depois de transferido`);
-        log(`➡️ Ticket #${id}: primeiro da lista.`);
-        await tTransferirTicket(id, nome, alvo);
-        feitos.add(id);
-        transferidos++;
-        cntEl.textContent = transferidos;
-        log(`✅ Ticket #${id} transferido para "${nome}" (${transferidos}).`);
-      }
-      tStatus(`Concluído: ${transferidos} ticket(s) transferido(s) para "${nome}".`, 'ok');
-    } catch (err) {
-      if (err instanceof TransfSuspenso) {
-        tStatus(`Suspenso após ${transferidos} transferência(s): ${err.message}.`, 'err');
-        log(`✋ Transferência suspensa: ${err.message}.`);
-      } else if (err instanceof TransfInterrompido) {
-        tStatus(`Interrompido (${err.message}) após ${transferidos} transferência(s).`, 'err');
-        log(`⏹ Transferência interrompida: ${err.message}.`);
-      } else {
-        tStatus(`Erro inesperado: ${err.message}`, 'err');
-        log(`❌ Erro na transferência: ${err.message}`);
-      }
-    } finally {
-      if (!painelFechado) {
-        rodando = false;
-        pausado = false;
-        modoAtual = null;
-        await liberarWakeLock();
-        atualizarBotoesEstado(false);
-        log(`🏁 Transferência encerrada: ${transferidos} ticket(s).`);
-      }
-    }
-  }
-  bindPanelInput(transfNomeEl, '', () => { if (!rodando) tStatus(''); });
-  btnTransfer.onclick = () => {
-    if (rodando || autoBloqueiaOutras()) return;
-    executarTransferenciaAtendente();
-  };
 
-  function fecharPainel() {
-    painelFechado = true;
-    window.removeEventListener('click', onCapturaControles, true);
-    autoDestruir();
-    clearInterval(queueTimer);
-    rodando = false;
-    pausado = false;
-    modoAtual = null;
-    liberarWakeLock();
-    document.removeEventListener('visibilitychange', onVisChange);
-    document.removeEventListener('mousemove', onDocMouseMove);
-    document.removeEventListener('mouseup', onDocMouseUp);
-    document.removeEventListener('click', onDocClickCloseTheme);
-    window.removeEventListener('rf-bm-theme-change', onSyncTheme);
-    p.remove();
-    styleEl.remove();
-    if (window.__rodBotCleanup === fecharPainel) {
-      delete window.__rodBotCleanup;
-    }
-  }
-  btnClose.onclick = fecharPainel;
-  window.__rodBotCleanup = fecharPainel;
-  btnPauseAll.onclick = () => { if (!autoBloqueiaOutras()) executarModoEsperaTodos('pausar'); };
-  btnUnpauseAll.onclick = () => { if (!autoBloqueiaOutras()) executarModoEsperaTodos('despausar'); };
-  log("🤖 rod bot pronto! Escolha uma aba acima.");
-})();;void 0;

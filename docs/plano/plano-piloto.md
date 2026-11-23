@@ -506,3 +506,110 @@ sem revisão prévia e listada no relatório final.
 ## Andamento
 
 - Tarefa 1: feita (commit `build: divide o bookmarklet em 4 trechos…`). Parar aqui para conferência do BM.
+- Tarefa 2: feita. `src/js/puro/validar-fluxo.js` ainda **não** entra em `ordem.txt` (o bundle não muda até a
+  Tarefa 7, então a prova de ida e volta da Tarefa 1 continua valendo); entra quando o motor/UI o usarem.
+  A Tarefa 2 já traz a regra `indisponivel` (Atender/Despausar em 🆕/👥), porque os testes dela dependem disso; a
+  Tarefa 4 acrescenta o resto (loop efetivo, limites, `sem-para-quem`).
+- Tarefa 3: feita (regras 1, 4, 5, precedência 4 › 1, `erroDoModal` na ordem da regra 10 e `textoModal` com as frases do layout-M).
+  Fora do bundle, como a Tarefa 2.
+- Tarefa 4: feita (`loopEfetivo` com `habilitado`, `disponibilidade`, erros globais `sem-para-quem`/`fluxo-vazio`/`muitos-passos`). Fora do bundle.
+- Tarefa 5: feita (`validarCampos`, `podeIniciar`). Fora do bundle. Etapa 2 (validador) concluída.
+- Tarefa 6: feita (`pausa`, `normalizarVelocidade`, `velocidadeDoPasso`, `seloVelocidade`, `pausaEntreCiclos`, `normalizarPausaCiclos`). Fora do bundle; aceita vírgula decimal ("1,5").
+- Tarefa 7: feita. 68 pausas classificadas em `docs/plano/pausas.md` (16 entram, 52 não). `velocidade.js` e `pausas.js`
+  entram no bundle (depois de `01-base.js`); o validador continua fora. Saíram `scripts/extrair.mjs` e a prova da
+  Tarefa 1 (fica no histórico, `46f3091`); no lugar há `build.test.mjs` (permanente) e a prova "só mudou
+  `sleep(` → `pausaAcao(`" contra o `3ca5940`, que vale até a Tarefa 11. Nos testes de tela, o Playwright é
+  carregado com `createRequire` (o import ESM direto não o acha).
+- Tarefa 8: feita. `test/e2e/blip-falso/` (página + `blip-falso.js` com API `blipFalso.reiniciar/estado/chegarChat`),
+  `test/e2e/util.mjs`, 10 testes da página e 8 testes do **painel antigo rodando na página falsa** (Pausar/Despausar
+  todos, Atender, Mover, Só enviar, Enviar + Finalizar com tag, Transferir em massa, Auto). `npm run verificar` ≈ 1 min.
+  Perguntas pendentes ao BM (não bloqueiam a Tarefa 9, que é pura): outerHTML de um **card pausado** (para contar
+  "Pausados: N" sem abrir menus) e de um **card recém-puxado pelo Atender** (entra no fim ou no topo da lista?).
+  Resposta do BM: o puxado entra no **topo** (página falsa ajustada).
+- Tarefa 9: feita. `src/js/puro/motor.js` (`executarFluxo(fluxo, deps)`, `ErroGeral`), fora do bundle até a Tarefa 11.
+  Decisões de implementação: as ações são **por ticket** (`enviar(id)`, `pausar(id)`…), e o motor decide quem pular;
+  memória da execução = um envio por ticket na execução inteira + cada passo age uma vez por ticket (assim `[P,D,P]`
+  funciona e o loop não repete); "já estava em espera" aparece **uma vez** por ticket pausado por outra pessoa (não
+  a cada ciclo para os que o próprio fluxo pausou); falha de item pode vir como `{ok:false}` ou exceção comum;
+  card sem número conta o máximo do ciclo. A Tarefa 11 adapta as funções reais a essa interface por ticket.
+- Tarefa 10: feita. `motorPorChat` (🆕/👥) no mesmo `motor.js`. Interface nova do adaptador: `novosChats()`,
+  `entreChats()`, `memoria24h.{tem,gravar}`. O id vai para as 24 h **antes** do 1º passo; falha num passo encerra
+  aquele chat (os seguintes não rodam) e segue para o próximo; 👥 faz o lote passo a passo como o ⏳ e depois vigia;
+  vigia lê chats novos a cada 500 ms (não muda com a velocidade); trava "Já há um fluxo rodando" vale para os 3 modos.
+- Tarefa 11: feita. `refactor(mover)` separou `04-transferir.js` de `06-fechar.js`; `05-fluxo.js` tem os adaptadores
+  por ticket e o gancho `window.__rodBot` (só com `__rodBotTeste`). Mudanças no código antigo, todas mantendo o
+  comportamento do painel antigo: `passo2_tag(tag)` aceita parâmetro; o Auto ganhou o modo "consumidor" (o fluxo usa
+  só o observador e o contador; o worker fica parado) e não descarta chats novos enquanto o próprio fluxo roda;
+  `fecharPainel` apaga o gancho. O motor entende `pulado` (ex.: ticket em espera, lido pelo menu antes de enviar).
+  11 pausas novas em `pausas.md` (79 no total, 22 entram). A prova "só mudou `sleep(`" da Tarefa 7 saiu (histórico).
+  Enquanto o BM não mandar o HTML de um card pausado, o envio em ⏳ lê o menu de cada ticket antes (≈1 s a mais por ticket).
+- Tarefa 12: feita. `test/e2e/motor-blip-falso.test.mjs` (9 cenários: Piloto clássico, Despausar, loop com ticket
+  novo, 🆕, 👥, Transferir, falha geral, velocidade 2.0 × 1.0 medindo cada `setTimeout`, pausa entre ciclos).
+  Ajuste no motor: `semEfeito` (já estava no estado pedido) não conta e, em 🆕/👥, o chat segue; `pulado` (envio a
+  ticket em espera) encerra o chat. Blip falso ganhou `adicionarFila(n)`. Etapa 4 (motor) concluída; `npm run
+  verificar` ≈ 3 min.
+- **Escolha do BM para a tela Montar: Opção 2 · Compacta** (`docs/plano/layouts/opcao-montar-2.png`): "Para quem?" em
+  pílulas pequenas na linha abaixo do seletor, paleta numa faixa fina, passos, Ajustes recolhidos, Iniciar. As Tarefas
+  15–20 seguem essa imagem; o Acompanhar segue o `layout-D.png`.
+- Tarefa 13: feita. `src/js/puro/fluxos-salvos.js` (`criarFluxosSalvos`, `temAlteracoes`), fora do bundle até a tela usar.
+  Decisões: o Mover do ⭐ Piloto clássico também começa com a pasta **vazia** (vermelha até escolher um chip), como a
+  mensagem; nomes não se repetem (sem diferenciar maiúsculas) e não podem ser o de um modelo; todo passo tem
+  `velocidade: null` (= a do fluxo).
+- Tarefa 14: feita. `src/js/puro/migracao.js` (`migrarPrimeiraAbertura`, `mensagemAutoMigrada`, `abaInicial`), fora do
+  bundle até a tela usar. A mensagem migrada fica guardada na própria marca `rf_rodbot_migracao_v1` e entra no ⭐ Auto
+  clássico por `criarFluxosSalvos(arm, { mensagemAuto })`; nenhuma chave antiga é lida além da mensagem do Auto, nem
+  apagada ou alterada.
+- Tarefa 15: feita. `refactor(mover)` renomeou o fechamento para `99-fechar.js` (sempre o último trecho). `06-tela.js`
+  monta a casca (abas 🧩 Montar | 📊 Acompanhar, cores pelas variáveis do tema) só com `rf_rodbot_ui_nova_v1 = '1'`;
+  sem a chave nada muda. Montar esconde a barra de execução e o log; Acompanhar mostra. `fluxos-salvos.js` e
+  `migracao.js` entram no bundle (a tela usa `abaInicial`).
+- Tarefa 16: feita (`docs/plano/layouts/tela-montar-tarefa16.png`). `puro/passos-tela.js` (títulos, resumo de uma linha,
+  novo passo, mover/remover) e a tela Montar em `06-tela.js`: seletor de fluxos + "＋", "Para quem?" em pílulas, paleta
+  em faixa, cartões com ▲ ▼ ✕ (um aberto por vez), passo vermelho com o motivo, Iniciar com a dica do que falta.
+  Sem modo, tocar na paleta faz o "Para quem?" piscar e não adiciona. O 💾 e o aviso de alterações ficam na Tarefa 20;
+  o caso "Despausar em 🆕 fica vermelho" é testado na Tarefa 17 (precisa do campo Pausar | Despausar).
+- Tarefa 17: feita (`docs/plano/layouts/tela-montar-tarefa17.png`). Campos no cartão aberto: Enviar (Só enviar | Enviar +
+  Finalizar, mensagem, "Usar padrão" só ao tocar, Tag só no Finalizar), Espera (Pausar | Despausar; Despausar some em
+  🆕/👥), Mover (pasta + chips nv2, default e recentes), Transferir (nome exato) e Velocidade do passo (aceita vírgula;
+  fora da faixa corrige com aviso; selo ×N.N no título). Digitar não recria o cartão (o foco fica); campo obrigatório
+  vazio fica vermelho e bloqueia o Iniciar; texto do usuário nunca vira HTML.
+- Tarefa 18: feita (`docs/plano/layouts/tela-modal-tarefa18.png`). Modal de ordem inválida como o `layout-M.png`: abre ao
+  adicionar um passo que quebra a ordem e ao clicar em Iniciar; mostra o erro do 1º passo com erro (regra 10);
+  botões "Entendi", "Colocar Despausar antes do passo N" (só quando não houve envio antes, regra 8) e "Remover passo N".
+  Para o Iniciar abrir o modal ele fica `aria-disabled` (clicável) quando o bloqueio é de ordem; nos demais bloqueios
+  (sem modo, sem passos, campo vazio) continua `disabled`. Trocar o "Para quem?" nunca abre o modal sozinho.
+- Tarefa 19: feita (`docs/plano/layouts/tela-ajustes-tarefa19.png`). ⚙️ Ajustes recolhíveis com o resumo ao lado do título.
+  Velocidade (0.5–2.0, corrige com aviso), "Repetir em loop (sentinela)" (a escolha nunca se perde; desabilitado com o
+  motivo sem Atender em 1º; se o usuário desligou, recolocar o Atender não religa), pausa entre ciclos (0–60 s, "não muda
+  com a velocidade") e "Também puxar a fila (Atender)" só em 🆕/👥 (desligada por padrão). Em 🆕/👥 somem o loop e a pausa
+  entre ciclos. Tudo fica no fluxo ao trocar de modo e voltar.
+- Tarefa 20: feita (`docs/plano/layouts/tela-fluxos-troca-tarefa20.png`, `tela-fluxos-nome-tarefa20.png`). Seletor com os modelos
+  ⭐ e os fluxos do usuário; 💾 abre um diálogo de nome (valida vazio, repetido, nome de modelo e o limite de 10 dentro do
+  próprio diálogo) e **sempre cria um fluxo novo**, que passa a ser o atual; "● Alterações não salvas" aparece ao editar;
+  trocar de fluxo ou tocar em ＋ com alterações pergunta **Voltar / Descartar / Salvar como novo** (acréscimo meu: "Voltar",
+  para o usuário não ficar sem saída; Esc também volta); 🗑 só em fluxo do usuário, com confirmação. O último usado abre
+  carregado. Enquanto a pergunta está aberta o seletor continua mostrando o fluxo atual.
+- Tarefa 21: feita (`docs/plano/layouts/tela-acompanhar-tarefa21.png`). `puro/stepper.js` (`montarStepper`, `novaExecucao`,
+  `aplicarEventoStepper`, `rotuloExecucao`). O motor avisa a tela por `fluxoOuvintes` (eventos `inicio`, `ciclo`, `passo`,
+  `fim`); o Acompanhar mostra nome + "Ciclo #N" / "Vigiando" / "Concluído" / "Falha" / "Parado", o passo a passo do usuário
+  (✓ Feito, Rodando com o chat atual em 🆕/👥, ✕ Falha com o motivo), os contadores do Auto só em 🆕/👥 (são os mesmos
+  elementos do painel antigo, movidos para cá) e a barra Pausar/Parar + log de antes. Parado, mostra o fluxo do Montar.
+- Tarefa 22: feita, em 2 commits. (1) O Iniciar da tela roda uma **cópia** do fluxo pelo motor, pula para o Acompanhar e
+  fica bloqueado ("⏳ Fluxo rodando…") enquanto roda. (2) **Painel antigo e interruptor removidos**: saíram as 5 abas e os
+  painéis, `02-piloto.js` inteiro, o Piloto fixo, Envio/Pastas/Fila/Auto/Transferir em massa (`loop`, `obterCamposPainel`,
+  `percorrerItensFila`, `executar*Todos`, `executarAtendimentoAutomatico`, `executarTransferenciaAtendente`,
+  `autoBloqueiaOutras`…), a chave `rf_rodbot_ui_nova_v1` (a tela nova abre sempre; a chave não é lida nem criada) e o CSS das
+  abas. Ficaram as funções que os adaptadores usam (tag/finalizar, mover por ticket, menu, Auto como observador,
+  `tTransferirTicket`). Os contadores do Auto viraram um cartão próprio, mostrado no Acompanhar em 🆕/👥. `pausas.md`
+  regerado: 43 pausas (11 entram), as decisões das que ficaram não mudaram. Testes do painel antigo e "sem interruptor"
+  saíram; os fluxos que eles cobriam já estão nos testes do motor na página falsa. **Este é o primeiro HTML com a tela
+  nova** (`rodbot-final.html`, 722 KB; o bookmarklet codificado passou de 286 KB para 356 KB).
+  Ficou CSS morto do Piloto antigo (`.ba-pipeline`, `.ba-step`…) que não afeta nada; dá para limpar depois.
+- Tarefa 23: feita. `test/e2e/ponta-a-ponta.test.mjs`: 10 cenários montados e iniciados **pela tela** (sem gancho):
+  ⏳ [A,E,P,M] sem loop; ⏳ com loop e sentinela até o ciclo 2; 🆕 [E,P]; 👥 [E,P] (lote + vigia); 🆕 com "Também puxar a
+  fila"; Transferir pelo nome exato; ordem inválida (modal, nada executa) e campo vazio (Iniciar não roda); velocidade
+  2.0 × 1.0 escolhida nos Ajustes (mais rápido, nenhuma pausa abaixo de 50%); ⭐ Auto clássico com a mensagem migrada;
+  tema e último fluxo salvo mantidos ao reabrir.
+- Tarefa 24: feita. `docs/plano/entrega-piloto.md` (o que mudou, o que foi testado, o que **não** foi testado no Blip real,
+  checklist de 14 passos com tickets de teste, decisões fora da spec, pendências, como voltar atrás e a tabela de pausas).
+  README aponta para ela. **Plano concluído (24/24).**

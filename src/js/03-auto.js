@@ -49,8 +49,6 @@
   };
   const AUTO_IGNORAR_TAGS = new Set(['SCRIPT', 'STYLE', 'TEXTAREA', 'INPUT', 'SVG', 'TEMPLATE', 'NOSCRIPT']);
 
-  const autoMsgEl = document.getElementById('ba-auto-msg');
-  const autoToggleBtn = document.getElementById('ba-auto-toggle');
   const autoStateEl = document.getElementById('ba-auto-state');
   const autoCountEl = document.getElementById('ba-auto-count');
   const autoNativeEl = document.getElementById('ba-auto-native');
@@ -60,7 +58,6 @@
   const autoResumeBtn = document.getElementById('ba-auto-resume');
   const autoRetryPauseBtn = document.getElementById('ba-auto-retry-pause');
   const autoResetBtn = document.getElementById('ba-auto-reset');
-  const autoFillDefaultBtn = document.getElementById('ba-auto-fill-default');
   const autoPillEl = document.getElementById('ba-auto-pill');
 
   const auto = {
@@ -87,7 +84,8 @@
     obs: { fila: null, chip: null, typo: null, filtro: null },
     alvos: { fila: null, chip: null, typo: null, filtro: null },
     timerScan: null,
-    timerRecon: null
+    timerRecon: null,
+    consumidor: null        // fluxo 🆕/👥: recebe os ids novos no lugar do worker do Auto
   };
 
   function autoLerContador() {
@@ -124,7 +122,7 @@
   auto.contador = autoLerContador();
 
   function autoLerMensagem() {
-    return (autoMsgEl?.value || '').trim();
+    return ''; // o Auto antigo não envia mais nada sozinho: quem envia é o fluxo (🆕/👥)
   }
   function autoCampoTexto() {
     return document.querySelector(AUTO_SEL.campoTexto);
@@ -236,7 +234,8 @@
   function autoMotivoAbsorcao() {
     if (autoFiltroAberto()) return 'filtro aberto';
     if (Date.now() < auto.supressaoAte) return auto.motivoSupressao;
-    if (rodando && modoAtual !== 'claim') return 'outra automação do BM em execução';
+    // o próprio fluxo 🆕/👥 que consome o observador não é "outra automação" (seus cliques não revelam chats antigos)
+    if (rodando && modoAtual !== 'claim' && !(auto.consumidor && modoAtual === 'fluxo')) return 'outra automação do BM em execução';
     return '';
   }
 
@@ -304,6 +303,11 @@
         auto.contador++;
         autoSalvarContador();
         autoGravarTicket(id, { contado: true });
+        if (auto.consumidor) {
+          log(`🆕 Novo chat #${id} (total do BM: ${auto.contador}).`);
+          auto.consumidor(id);
+          continue;
+        }
         autoRegistrar(id, 'pendente', 'novo chat detectado');
         if (!auto.fila.some(it => it.id === id && !it.soPausa)) auto.fila.push({ id, soPausa: false });
         log(`🆕 Novo chat #${id} (total do BM: ${auto.contador}).`);
@@ -751,7 +755,7 @@
           auto.atual = null;
           autoRender();
         }
-        await sleep(AUTO_T.entreTickets);
+        await pausaAcao(AUTO_T.entreTickets);
       }
     } finally {
       auto.workerAtivo = false;
@@ -760,15 +764,12 @@
     }
   }
 
-  function autoAtivar() {
+  // consumidor: usado pelo fluxo 🆕/👥 (só o observador; quem processa é o motor, não o worker do Auto).
+  function autoAtivar(consumidor = null) {
     if (auto.ativo || auto.destruido) return;
-    if (!autoLerMensagem()) {
-      log('⚠️ Digite a mensagem automática antes de ativar.');
-      autoMsgEl?.focus();
-      autoRender();
-      return;
-    }
+    if (!consumidor) return; // só o fluxo 🆕/👥 ativa o observador
     auto.ativo = true;
+    auto.consumidor = consumidor;
     auto.gen++;
     auto.baselinePronta = false;
     auto.suspensa = '';
@@ -782,13 +783,15 @@
       autoGarantirObservers();
       autoReexaminar();
     }, AUTO_T.reconciliar);
-    log('▶ Resposta automática ativada. Registrando os chats atuais...');
+    log(consumidor ? '👁️ Vigiando chats novos. Registrando os chats atuais...' : '▶ Resposta automática ativada. Registrando os chats atuais...');
     autoReexaminar();
     autoRender();
   }
   function autoDesativar() {
     if (!auto.ativo) return;
+    const eraFluxo = !!auto.consumidor;
     auto.ativo = false;
+    auto.consumidor = null;
     auto.gen++;
     for (const [tipo, fn, opt] of AUTO_EVENTOS) document.removeEventListener(tipo, fn, opt);
     clearInterval(auto.timerRecon);
@@ -804,7 +807,7 @@
     }
     auto.suspensa = '';
     auto.aguardando = '';
-    log(`⏹ Resposta automática desativada. ${descartados.length} pendente(s) descartado(s).`);
+    log(eraFluxo ? '⏹ Vigia de chats novos encerrada.' : `⏹ Resposta automática desativada. ${descartados.length} pendente(s) descartado(s).`);
     if (auto.atual && !auto.atual.soPausa) {
       log(`ℹ️ Chat #${auto.atual.id} em andamento: se a mensagem já saiu, a pausa será concluída; senão, nada será enviado.`);
     }
@@ -838,12 +841,6 @@
     autoRender();
     autoAgendarWorker();
   }
-  function autoBloqueiaOutras() {
-    if (!auto.atual) return false;
-    log(`⚠️ Aguarde: a resposta automática está processando o chat #${auto.atual.id}.`);
-    return true;
-  }
-
   function autoRender() {
     if (auto.destruido || !autoStateEl) return;
     const pendentes = auto.fila.filter(it => !it.soPausa).length + (auto.atual && !auto.atual.soPausa ? 1 : 0);
@@ -881,9 +878,6 @@
     autoDetailEl.textContent = detalhe;
     autoDetailEl.setAttribute('data-tone', tom === 'err' || (auto.ultimoErro && auto.ativo) ? 'err' : tom === 'wait' ? 'wait' : '');
 
-    autoToggleBtn.textContent = auto.ativo ? '⏹ Desativar resposta automática' : '▶ Ativar resposta automática';
-    autoToggleBtn.style.background = auto.ativo ? '#ef4444' : '';
-    autoToggleBtn.style.color = auto.ativo ? '#ffffff' : '';
     autoResumeBtn.style.display = auto.suspensa ? '' : 'none';
     const temPausaPendente = [...auto.registros.values()].some(r => r.estado === 'falha_pausa');
     autoRetryPauseBtn.style.display = temPausaPendente ? '' : 'none';
@@ -906,20 +900,6 @@
     if (window.__rodBotAuto && window.__rodBotAuto.instancia === auto) delete window.__rodBotAuto;
   }
 
-  if (autoMsgEl) {
-    let salva = '';
-    try { salva = localStorage.getItem(AUTO_MSG_KEY) || ''; } catch {}
-    bindPanelInput(autoMsgEl, salva, val => {
-      try { localStorage.setItem(AUTO_MSG_KEY, val); } catch {}
-      if (!val.trim() && auto.ativo) autoRender();
-    });
-  }
-  autoFillDefaultBtn.onclick = () => {
-    autoMsgEl.value = MENSAGEM_PADRAO;
-    autoMsgEl.dispatchEvent(new Event('input', { bubbles: true }));
-    log('📋 Mensagem padrão carregada na resposta automática.');
-  };
-  autoToggleBtn.onclick = () => (auto.ativo ? autoDesativar() : autoAtivar());
   autoResumeBtn.onclick = () => autoRetomar();
   autoRetryPauseBtn.onclick = () => autoRepetirPausas();
   autoResetBtn.onclick = () => {

@@ -14,12 +14,11 @@
     delayAcoes: 1200,
     delayTrocaTicket: 700
   };
-  let rodando = false, pausado = false, tickets = 0, modoAtual = null, modoChave = 'enviar', abaAtiva = 'pasta';
+  let rodando = false, pausado = false, modoAtual = null;
   let wakeLock = null;
   let logOculto = false;
 
   const THEME_KEY = 'rf_widget_theme_v1';
-  const TAB_KEY = 'rf_rodbot_tab_v1';
   const FOLDERS_KEY = 'rf_rodbot_recent_folders_v1';
   const DEFAULT_FOLDERS = ['nv2', 'default'];
 
@@ -42,18 +41,6 @@
   function saveTheme(t) {
     try { localStorage.setItem(THEME_KEY, t); } catch {}
     try { window.dispatchEvent(new CustomEvent('rf-bm-theme-change', { detail: t })); } catch {}
-  }
-
-  function getSavedTab() {
-    try {
-      const tab = localStorage.getItem(TAB_KEY);
-      return ['piloto', 'pasta', 'mensagem', 'fila', 'auto'].includes(tab) ? tab : 'piloto';
-    } catch {
-      return 'piloto';
-    }
-  }
-  function saveTab(tab) {
-    try { localStorage.setItem(TAB_KEY, tab); } catch {}
   }
 
   function getRecentFolders() {
@@ -79,7 +66,6 @@
     } catch {}
   }
 
-  abaAtiva = getSavedTab();
 
   const styleEl = document.createElement('style');
   styleEl.id = 'rf-rodbot-css';
@@ -206,25 +192,6 @@
     }
     #ba-close:hover { background: #ef4444; color: #fff; border-color: #ef4444; }
     .ba-body { padding: 14px; display: flex; flex-direction: column; gap: 12px; }
-    .ba-tabs {
-      display: grid; grid-template-columns: repeat(5, 1fr); gap: 3px;
-      background: var(--rb-elevated); border: 1px solid var(--rb-border);
-      border-radius: 12px; padding: 4px;
-    }
-    .ba-tab-btn {
-      border: 1px solid transparent; border-radius: 8px; padding: 7px 4px;
-      background: transparent; color: var(--rb-muted); font: 600 11px inherit;
-      cursor: pointer; transition: all 0.15s ease; display: flex; align-items: center; justify-content: center; gap: 4px;
-      white-space: nowrap;
-    }
-    .ba-tab-btn:hover { color: var(--rb-text); background: rgba(255,255,255,0.03); }
-    .ba-tab-btn.active {
-      background: var(--rb-accent-dim); color: var(--rb-accent);
-      border-color: var(--rb-accent-border); box-shadow: 0 2px 10px var(--rb-accent-glow);
-      font-weight: 700;
-    }
-    .ba-pane { display: none; flex-direction: column; gap: 11px; }
-    .ba-pane.active { display: flex; }
     .ba-card {
       background: var(--rb-card); border: 1px solid var(--rb-border); border-radius: 14px; padding: 12px;
     }
@@ -513,204 +480,22 @@
       </div>
     </div>
     <div class="ba-body">
-      <div id="ba-tabs" class="ba-tabs" role="tablist">
-        <button id="ba-tab-piloto" class="ba-tab-btn" type="button" data-ba-tab="piloto">⚡ Piloto</button>
-        <button id="ba-tab-pasta" class="ba-tab-btn" type="button" data-ba-tab="pasta">📁 Pastas</button>
-        <button id="ba-tab-mensagem" class="ba-tab-btn" type="button" data-ba-tab="mensagem">✉️ Envio</button>
-        <button id="ba-tab-fila" class="ba-tab-btn" type="button" data-ba-tab="fila">📥 Fila</button>
-        <button id="ba-tab-auto" class="ba-tab-btn" type="button" data-ba-tab="auto">💬 Auto</button>
-      </div>
-
-      <div id="ba-pane-piloto" class="ba-pane">
-        <div class="ba-pipeline">
-          <div class="ba-step" id="ba-step-1" data-status="idle">
-            <div class="ba-step-rail">
-              <div class="ba-step-icon">📥</div>
-              <div class="ba-step-line"></div>
-            </div>
-            <div class="ba-step-body">
-              <div class="ba-step-hdr">
-                <span class="ba-step-title">1. Puxar Fila (Atender)</span>
-                <span class="ba-step-status" id="ba-status-1">Aguardando</span>
-              </div>
-              <p class="ba-step-desc">Clica em Atender a cada 0.5s até zerar a fila</p>
-            </div>
-          </div>
-
-          <div class="ba-step" id="ba-step-2" data-status="idle">
-            <div class="ba-step-rail">
-              <div class="ba-step-icon">✉️</div>
-              <div class="ba-step-line"></div>
-            </div>
-            <div class="ba-step-body">
-              <div class="ba-step-hdr">
-                <span class="ba-step-title">2. Enviar Mensagens</span>
-                <span class="ba-step-status" id="ba-status-2">Pendente</span>
-              </div>
-              <p class="ba-step-desc">Dispara texto configurado sem finalizar ticket</p>
-            </div>
-          </div>
-
-          <div class="ba-step" id="ba-step-3" data-status="idle">
-            <div class="ba-step-rail">
-              <div class="ba-step-icon">⏸️</div>
-              <div class="ba-step-line"></div>
-            </div>
-            <div class="ba-step-body">
-              <div class="ba-step-hdr">
-                <span class="ba-step-title">3. Pausar Todos</span>
-                <span class="ba-step-status" id="ba-status-3">Pendente</span>
-              </div>
-              <p class="ba-step-desc">Coloca todos os clientes atendidos em espera</p>
-            </div>
-          </div>
-
-          <div class="ba-step" id="ba-step-4" data-status="idle">
-            <div class="ba-step-rail">
-              <div class="ba-step-icon">📁</div>
-              <div class="ba-step-line"></div>
-            </div>
-            <div class="ba-step-body">
-              <div class="ba-step-hdr">
-                <span class="ba-step-title">4. Mover para Pasta</span>
-                <span class="ba-step-status" id="ba-status-4">Pendente</span>
-              </div>
-              <p class="ba-step-desc">Envia os tickets para a pasta selecionada</p>
-            </div>
-          </div>
-
-          <div class="ba-loop-card" id="ba-loop-card">
-            <div class="ba-loop-icon">🔄</div>
-            <div class="ba-loop-text">
-              <div class="ba-loop-title">Loop Contínuo com Sentinela</div>
-              <div class="ba-loop-desc" id="ba-loop-desc">Repete o ciclo. Se fila zerar, vigia até surgir 1 ou + clientes.</div>
-            </div>
-          </div>
+      <div class="ba-card" id="ba-auto-card">
+        <div class="ba-row-head">
+          <span class="ba-label">💬 Chats novos</span>
+          <span id="ba-auto-state" class="ba-auto-state" data-tone="off">Desativada</span>
         </div>
-
-        <div class="ba-card">
-          <div class="ba-row-head" style="margin-bottom:6px;">
-            <span class="ba-label">⚙️ Configurações Rápidas</span>
-            <span class="ba-sub" id="ba-pilot-cycle-badge" style="color:var(--rb-accent);font-weight:700;">Ciclo: #0</span>
-          </div>
-          <div style="display:flex;flex-direction:column;gap:8px;">
-            <div>
-              <div class="ba-row-head" style="margin-bottom:3px;">
-                <label for="ba-pilot-folder" class="ba-sub" style="font-weight:600;color:var(--rb-text);">📁 Pasta Destino:</label>
-              </div>
-              <input id="ba-pilot-folder" type="text" placeholder="Ex: nv2, default..." />
-              <div id="ba-pilot-folder-chips" class="ba-chips-row" style="margin-top:5px;"></div>
-            </div>
-            <div>
-              <div class="ba-row-head" style="margin-bottom:3px;">
-                <label for="ba-pilot-msg" class="ba-sub" style="font-weight:600;color:var(--rb-text);">✉️ Mensagem do Envio:</label>
-                <button id="ba-pilot-fill-default" class="ba-pill-btn" type="button" title="Preencher mensagem padrão">📋 Usar padrão</button>
-              </div>
-              <textarea id="ba-pilot-msg" rows="2" placeholder="Digite a mensagem para os clientes..."></textarea>
-            </div>
-          </div>
+        <div class="ba-auto-stats">
+          <div><span class="ba-sub">Novos chats (BM)</span><b id="ba-auto-count">0</b></div>
+          <div><span class="ba-sub">Contador Blip</span><b id="ba-auto-native">--</b></div>
+          <div><span class="ba-sub">Na fila do BM</span><b id="ba-auto-queue">0</b></div>
         </div>
-
-        <button id="ba-pilot-start" class="ba-cta" type="button">
-          ⚡ Iniciar Piloto Automático
-        </button>
-      </div>
-
-      <div id="ba-pane-pasta" class="ba-pane">
-        <div class="ba-card">
-          <div class="ba-row-head" style="margin-bottom:4px;">
-            <label for="ba-folder" class="ba-label">Nome exato da pasta</label>
-          </div>
-          <p class="ba-sub" style="margin:0 0 9px;">Percorre a fila e move cada cliente para a pasta correspondente no Blip.</p>
-          <input id="ba-folder" type="text" placeholder="Ex: nv2, default..." />
-          <div id="ba-folder-chips" class="ba-chips-row"></div>
-        </div>
-        <button id="ba-move-folder" class="ba-cta" type="button">📁 Mover todos para pasta</button>
-      </div>
-
-      <div id="ba-pane-mensagem" class="ba-pane">
-        <div class="ba-card">
-          <div class="ba-row-head">
-            <label for="ba-msg" class="ba-label">Mensagem para enviar</label>
-            <button id="ba-fill-default" class="ba-pill-btn" type="button" title="Preencher com a mensagem padrão">📋 Usar padrão</button>
-          </div>
-          <textarea id="ba-msg" rows="3" placeholder="Digite ou cole o texto para os clientes da fila..."></textarea>
-        </div>
-        <div class="ba-card">
-          <div class="ba-row-head">
-            <span class="ba-label">Modo de operação</span>
-          </div>
-          <div id="ba-mode-switch">
-            <button id="ba-mode-enviar" type="button" aria-pressed="true">🛡️ Só Enviar</button>
-            <button id="ba-mode-finalizar" type="button" aria-pressed="false">⚡ Enviar + Finalizar</button>
-          </div>
-          <div id="ba-mode-hint"></div>
-          <div id="ba-tag-wrap" style="display:none;margin-top:9px;padding-top:9px;border-top:1px solid var(--rb-border);">
-            <label for="ba-tag" class="ba-label" style="display:block;margin-bottom:5px;">Tag para finalizar</label>
-            <input id="ba-tag" type="text" placeholder="Ex: revi, cobran..." />
-          </div>
-        </div>
-        <button id="ba-play" class="ba-cta" type="button">▶ Enviar para todos</button>
-      </div>
-
-      <div id="ba-pane-fila" class="ba-pane">
-        <div class="ba-card">
-          <div class="ba-row-head" style="margin-bottom:4px;">
-            <span class="ba-label">📥 Atendimento Automático</span>
-            <span class="ba-sub">Aguardando: <b id="ba-queue-count" style="color:var(--rb-accent);font-size:12px;">--</b></span>
-          </div>
-          <p class="ba-sub" style="margin:0 0 10px;">Clica em "Atender" a cada meio segundo (0.5s) até que a contagem da fila zere.</p>
-          <button id="ba-claim-auto" class="ba-cta" type="button">Atender Automático</button>
-        </div>
-        <div class="ba-card">
-          <div class="ba-label" style="margin-bottom:4px;">Controle de espera sem mensagem</div>
-          <p class="ba-sub" style="margin:0 0 10px;">Altera o status de espera de todos os clientes visíveis na fila atual.</p>
-          <div class="ba-actions-row">
-            <button id="ba-pause-all" type="button">⏸️ Pausar todos</button>
-            <button id="ba-unpause-all" type="button">▶️ Despausar todos</button>
-          </div>
-        </div>
-        <div class="ba-card">
-          <div class="ba-row-head" style="margin-bottom:4px;">
-            <label for="ba-transfer-name" class="ba-label">🔁 Transferir para atendente</label>
-          </div>
-          <p class="ba-sub" style="margin:0 0 9px;">Transfere um ticket por vez, sempre o primeiro da lista atual, para o atendente pesquisado no Blip pelo nome exato. Não envia mensagens nem finaliza.</p>
-          <input id="ba-transfer-name" type="text" placeholder="Nome do atendente (exato, como aparece no Blip)" autocomplete="off" />
-          <div id="ba-transfer-status" class="ba-sub" style="margin-top:6px;"></div>
-          <button id="ba-transfer-start" class="ba-cta" type="button" style="margin-top:9px;">🔁 Transferir todos para o atendente</button>
-        </div>
-      </div>
-
-      <div id="ba-pane-auto" class="ba-pane">
-        <div class="ba-card">
-          <div class="ba-row-head">
-            <span class="ba-label">💬 Resposta a novos chats</span>
-            <span id="ba-auto-state" class="ba-auto-state" data-tone="off">Desativada</span>
-          </div>
-          <p class="ba-sub" style="margin:0 0 9px;">Envia a mensagem abaixo a cada chat que chegar depois da ativação e pausa o cliente só após confirmar o envio. Chats já presentes na ativação não recebem nada.</p>
-          <button id="ba-auto-toggle" class="ba-cta" type="button">▶ Ativar resposta automática</button>
-        </div>
-        <div class="ba-card">
-          <div class="ba-row-head">
-            <label for="ba-auto-msg" class="ba-label">Mensagem automática</label>
-            <button id="ba-auto-fill-default" class="ba-pill-btn" type="button" title="Preencher com a mensagem padrão">📋 Usar padrão</button>
-          </div>
-          <textarea id="ba-auto-msg" rows="3" placeholder="Texto enviado a cada novo chat..."></textarea>
-          <p class="ba-sub" style="margin:6px 0 0;">Alterações valem a partir do próximo atendimento.</p>
-        </div>
-        <div class="ba-card">
-          <div class="ba-auto-stats">
-            <div><span class="ba-sub">Novos chats (BM)</span><b id="ba-auto-count">0</b></div>
-            <div><span class="ba-sub">Contador Blip</span><b id="ba-auto-native">--</b></div>
-            <div><span class="ba-sub">Na fila do BM</span><b id="ba-auto-queue">0</b></div>
-          </div>
-          <div id="ba-auto-detail" class="ba-sub" style="margin-top:8px;">Desativada.</div>
-          <div id="ba-auto-list" class="ba-auto-list"></div>
-          <div class="ba-auto-actions">
-            <button id="ba-auto-resume" class="ba-pill-btn" type="button" style="display:none;">▶ Retomar</button>
-            <button id="ba-auto-retry-pause" class="ba-pill-btn" type="button" style="display:none;">⏸️ Repetir pausas pendentes</button>
-            <button id="ba-auto-reset" class="ba-link-btn" type="button">Zerar contador</button>
-          </div>
+        <div id="ba-auto-detail" class="ba-sub" style="margin-top:8px;">Desativada.</div>
+        <div id="ba-auto-list" class="ba-auto-list"></div>
+        <div class="ba-auto-actions">
+          <button id="ba-auto-resume" class="ba-pill-btn" type="button" style="display:none;">▶ Retomar</button>
+          <button id="ba-auto-retry-pause" class="ba-pill-btn" type="button" style="display:none;">⏸️ Repetir pausas pendentes</button>
+          <button id="ba-auto-reset" class="ba-link-btn" type="button">Zerar contador</button>
         </div>
       </div>
 
@@ -801,126 +586,14 @@
   document.addEventListener('mouseup', onDocMouseUp);
 
   const stEl = document.getElementById('ba-st'), logEl = document.getElementById('ba-log');
-  const cntEl = document.getElementById('ba-cnt'), btnPlay = document.getElementById('ba-play');
+  const cntEl = document.getElementById('ba-cnt');
   const btnPause = document.getElementById('ba-pause'), btnStop = document.getElementById('ba-stop');
   const btnClose = document.getElementById('ba-close');
-  const btnFillDefault = document.getElementById('ba-fill-default');
-  const btnModeEnviar = document.getElementById('ba-mode-enviar');
-  const btnModeFinalizar = document.getElementById('ba-mode-finalizar');
-  const modeHintEl = document.getElementById('ba-mode-hint');
-  const tagWrapEl = document.getElementById('ba-tag-wrap');
-  const btnPauseAll = document.getElementById('ba-pause-all'), btnUnpauseAll = document.getElementById('ba-unpause-all');
-  const msgEl = document.getElementById('ba-msg'), tagEl = document.getElementById('ba-tag');
-  const folderEl = document.getElementById('ba-folder'), btnMoveFolder = document.getElementById('ba-move-folder');
-  const folderChipsEl = document.getElementById('ba-folder-chips');
   const runBarEl = document.getElementById('ba-run-bar'), runLabelEl = document.getElementById('ba-run-label');
   const btnClearLog = document.getElementById('ba-clear-log'), btnToggleLog = document.getElementById('ba-toggle-log');
-  const btnClaimAuto = document.getElementById('ba-claim-auto'), queueCountEl = document.getElementById('ba-queue-count');
+  const queueCountEl = document.getElementById('ba-queue-count'); // badge da antiga aba Fila: hoje null
 
-  const pilotFolderEl = document.getElementById('ba-pilot-folder');
-  const pilotMsgEl = document.getElementById('ba-pilot-msg');
-  const pilotFolderChipsEl = document.getElementById('ba-pilot-folder-chips');
-  const pilotFillDefaultBtn = document.getElementById('ba-pilot-fill-default');
-  const btnPilotStart = document.getElementById('ba-pilot-start');
 
-  const tabBtns = [...document.querySelectorAll('.ba-tab-btn')];
-  const panes = {
-    piloto: document.getElementById('ba-pane-piloto'),
-    pasta: document.getElementById('ba-pane-pasta'),
-    mensagem: document.getElementById('ba-pane-mensagem'),
-    fila: document.getElementById('ba-pane-fila'),
-    auto: document.getElementById('ba-pane-auto')
-  };
-
-  function aplicarAba(novaAba) {
-    if (!panes[novaAba]) return;
-    abaAtiva = novaAba;
-    saveTab(novaAba);
-    tabBtns.forEach(b => b.classList.toggle('active', b.dataset.baTab === novaAba));
-    Object.keys(panes).forEach(k => panes[k].classList.toggle('active', k === novaAba));
-  }
-  tabBtns.forEach(b => {
-    b.onclick = () => {
-      if (rodando) return;
-      aplicarAba(b.dataset.baTab);
-    };
-  });
-  aplicarAba(abaAtiva);
-
-  function renderFolderChips() {
-    const folders = getRecentFolders();
-    const html = `<span class="ba-chip-caption">Rápidas:</span>` +
-      folders.map(f => `<button type="button" class="ba-chip" data-folder-chip="${f.replace(/"/g, '&quot;')}">📁 ${f.replace(/</g, '&lt;')}</button>`).join('');
-    [folderChipsEl, pilotFolderChipsEl].forEach(container => {
-      if (!container) return;
-      container.innerHTML = html;
-      container.querySelectorAll('.ba-chip').forEach(ch => {
-        ch.onclick = () => {
-          if (rodando) return;
-          const val = ch.dataset.folderChip;
-          if (folderEl) folderEl.value = val;
-          if (pilotFolderEl) pilotFolderEl.value = val;
-          CONFIG.pastaDestino = val;
-        };
-      });
-    });
-  }
-  renderFolderChips();
-
-  if (pilotFolderEl) {
-    bindPanelInput(pilotFolderEl, CONFIG.pastaDestino, val => {
-      CONFIG.pastaDestino = val;
-      if (folderEl && folderEl.value !== val) folderEl.value = val;
-    });
-  }
-  if (folderEl) {
-    folderEl.addEventListener('input', () => {
-      if (pilotFolderEl && pilotFolderEl.value !== folderEl.value) {
-        pilotFolderEl.value = folderEl.value;
-      }
-    });
-  }
-
-  if (pilotMsgEl) {
-    bindPanelInput(pilotMsgEl, CONFIG.mensagem, val => {
-      CONFIG.mensagem = val;
-      if (msgEl && msgEl.value !== val) msgEl.value = val;
-    });
-  }
-  if (msgEl) {
-    msgEl.addEventListener('input', () => {
-      if (pilotMsgEl && pilotMsgEl.value !== msgEl.value) {
-        pilotMsgEl.value = msgEl.value;
-      }
-    });
-  }
-
-  if (pilotFillDefaultBtn) {
-    pilotFillDefaultBtn.onclick = () => {
-      if (rodando) return;
-      if (pilotMsgEl) {
-        pilotMsgEl.value = MENSAGEM_PADRAO;
-        pilotMsgEl.dispatchEvent(new Event('input', { bubbles: true }));
-      }
-      if (msgEl) {
-        msgEl.value = MENSAGEM_PADRAO;
-        msgEl.dispatchEvent(new Event('input', { bubbles: true }));
-      }
-      CONFIG.mensagem = MENSAGEM_PADRAO;
-      log("📋 Mensagem padrão carregada no Piloto.");
-    };
-  }
-
-  function bindPanelInput(el, initialVal, onUpdate) {
-    el.value = initialVal;
-    el.addEventListener('input', () => onUpdate(el.value));
-    ['keydown', 'keyup', 'keypress'].forEach(evt => {
-      el.addEventListener(evt, e => e.stopPropagation());
-    });
-  }
-  bindPanelInput(msgEl, CONFIG.mensagem, val => { CONFIG.mensagem = val; });
-  bindPanelInput(tagEl, CONFIG.tagBusca, val => { CONFIG.tagBusca = val; });
-  bindPanelInput(folderEl, CONFIG.pastaDestino, val => { CONFIG.pastaDestino = val; });
 
   btnClearLog.onclick = () => {
     logEl.innerHTML = '';
@@ -931,42 +604,6 @@
     logEl.style.display = logOculto ? 'none' : 'block';
     btnToggleLog.textContent = logOculto ? 'Mostrar log' : 'Ocultar log';
   };
-
-  function aplicarModoVisual() {
-    const ehFinalizar = modoChave === 'finalizar';
-    btnModeEnviar.setAttribute('aria-pressed', ehFinalizar ? 'false' : 'true');
-    btnModeFinalizar.setAttribute('aria-pressed', ehFinalizar ? 'true' : 'false');
-    btnModeEnviar.style.background = ehFinalizar ? 'transparent' : 'var(--rb-accent)';
-    btnModeEnviar.style.color = ehFinalizar ? 'var(--rb-muted)' : 'var(--rb-on-accent)';
-    btnModeEnviar.style.boxShadow = ehFinalizar ? 'none' : '0 2px 12px var(--rb-accent-glow)';
-    btnModeFinalizar.style.background = ehFinalizar ? '#0ea5e9' : 'transparent';
-    btnModeFinalizar.style.color = ehFinalizar ? '#ffffff' : 'var(--rb-muted)';
-    btnModeFinalizar.style.boxShadow = ehFinalizar ? '0 2px 12px rgba(14,165,233,0.4)' : 'none';
-    if (ehFinalizar) {
-      modeHintEl.innerHTML = '⚡ <b>Modo completo:</b> envia, aplica a tag e finaliza cada ticket.';
-      modeHintEl.style.color = '#7dd3fc';
-      tagWrapEl.style.display = 'block';
-    } else {
-      modeHintEl.innerHTML = '🛡️ <b>Modo seguro:</b> escreve para toda a fila sem encerrar tickets.';
-      modeHintEl.style.color = 'var(--rb-muted)';
-      tagWrapEl.style.display = 'none';
-    }
-    if (!rodando) {
-      btnPlay.textContent = ehFinalizar ? '▶ Atender e Finalizar' : '▶ Enviar para todos';
-      btnPlay.style.background = ehFinalizar ? '#0ea5e9' : 'var(--rb-accent)';
-      btnPlay.style.color = ehFinalizar ? '#ffffff' : 'var(--rb-on-accent)';
-      btnPlay.style.boxShadow = ehFinalizar ? '0 4px 16px rgba(14,165,233,0.35)' : '0 4px 16px var(--rb-accent-glow)';
-    }
-  }
-  function definirModoChave(novoModo) {
-    if (rodando || modoChave === novoModo) return;
-    modoChave = novoModo;
-    aplicarModoVisual();
-    log(novoModo === 'finalizar'
-      ? '⚡ Modo selecionado: Enviar + Finalizar'
-      : '🛡️ Modo selecionado: Só Enviar (sem finalizar)');
-  }
-  aplicarModoVisual();
 
   function escapeRegExp(str) {
     return (str || '').replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
@@ -1035,7 +672,7 @@
     await preencherCampoMensagem(input, texto);
     dispararEnvioEnter(input);
     log("✅ Mensagem enviada!");
-    await sleep(CONFIG.delayAcoes);
+    await pausaAcao(CONFIG.delayAcoes);
   }
   // Preenche o #text-input como a aplicação espera (setter nativo + eventos input/change).
   async function preencherCampoMensagem(input, texto) {
@@ -1053,16 +690,9 @@
       key: 'Enter', code: 'Enter', keyCode: 13, which: 13, bubbles: true
     }));
   }
-  async function passo1_mensagem() {
-    const mensagemAtual = msgEl.value.trim();
-    if (!mensagemAtual) throw new Error("A caixa de mensagem está vazia.");
-    CONFIG.mensagem = mensagemAtual;
-    log("📝 Enviando mensagem...");
-    await enviarTextoNoChat(mensagemAtual);
-  }
-  async function passo2_tag() {
-    const tagAtual = tagEl.value.trim();
-    if (!tagAtual) throw new Error("A caixa da tag está vazia.");
+  async function passo2_tag(tagParam) {
+    const tagAtual = String(tagParam || '').trim(); // a tag vem do passo Enviar + Finalizar
+    if (!tagAtual) throw new Error("A tag do passo está vazia.");
     CONFIG.tagBusca = tagAtual;
     log("🏷️ Abrindo 'Adicionar tags'...");
     const addTagDiv = await waitFor(() => {
@@ -1071,7 +701,7 @@
       return document.querySelector('.tags-container div.pointer');
     });
     clickUnico(addTagDiv);
-    await sleep(CONFIG.delayAcoes);
+    await pausaAcao(CONFIG.delayAcoes);
     const selectChips = await waitFor(() => document.querySelector('bds-select-chips'));
     if (!selectChips.shadowRoot) throw new Error("ShadowRoot indisponível");
     log(`🔍 Digitando '${tagAtual}'...`);
@@ -1111,7 +741,7 @@
     });
     clickUnico(tagOption);
     log("✅ Tag selecionada!");
-    await sleep(CONFIG.delayAcoes);
+    await pausaAcao(CONFIG.delayAcoes);
   }
   async function passo3_finalizar() {
     log("🔵 Clicando em 'Finalizar'...");
@@ -1148,73 +778,17 @@
     log("✅ Ticket finalizado!");
     await sleep(1000);
     await fecharAvisosPendentes();
-    await sleep(CONFIG.delayTrocaTicket);
+    await pausaAcao(CONFIG.delayTrocaTicket);
   }
-  async function passo5_proximoFila() {
-    log("👤 Mudando para o próximo da fila...");
-    await fecharAvisosPendentes();
-    await sleep(1500);
-    const items = document.querySelectorAll('article.chat-list-item');
-    if (items.length > 0) {
-      clickUnico(items[0]);
-      log(`✅ Cliente selecionado! (${items.length} restantes)`);
-      log("⏳ Aguardando novo chat carregar...");
-      await waitFor(() => document.querySelector('#text-input'), 8000);
-      await sleep(CONFIG.delayAcoes);
-      return true;
-    }
-    log("🏁 Nenhum cliente restante na fila.");
-    return false;
-  }
-
   function atualizarBotoesEstado(emExecucao, tituloExec = '') {
-    const controlesBloqueados = [
-      btnModeEnviar, btnModeFinalizar, btnFillDefault, pilotFillDefaultBtn,
-      btnPauseAll, btnUnpauseAll, btnPlay, btnMoveFolder, btnClaimAuto, ...tabBtns,
-      document.getElementById('ba-transfer-name'), document.getElementById('ba-transfer-start')
-    ].filter(Boolean);
-
     if (emExecucao) {
       setSt('Rodando', '#16a34a');
       runBarEl.style.display = 'flex';
       runLabelEl.textContent = tituloExec || 'Automação em execução...';
       btnPause.textContent = '⏸ Pausar';
-
-      if (modoAtual === 'piloto') {
-        if (btnPilotStart) {
-          btnPilotStart.disabled = false;
-          btnPilotStart.style.opacity = '1';
-          btnPilotStart.style.cursor = 'pointer';
-          btnPilotStart.textContent = '⏹ Interromper Piloto Contínuo';
-          btnPilotStart.style.background = '#ef4444';
-          btnPilotStart.style.color = '#ffffff';
-        }
-      } else {
-        if (btnPilotStart) {
-          btnPilotStart.disabled = true;
-          btnPilotStart.style.opacity = '0.52';
-          btnPilotStart.style.cursor = 'not-allowed';
-        }
-      }
     } else {
       setSt('Parado', 'rgba(100,116,139,0.55)');
       runBarEl.style.display = 'none';
-      aplicarModoVisual();
-
-      if (btnPilotStart) {
-        btnPilotStart.disabled = false;
-        btnPilotStart.style.opacity = '1';
-        btnPilotStart.style.cursor = 'pointer';
-        btnPilotStart.textContent = '⚡ Iniciar Piloto Automático';
-        btnPilotStart.style.background = '';
-        btnPilotStart.style.color = '';
-      }
-    }
-
-    for (const b of controlesBloqueados) {
-      b.disabled = emExecucao;
-      b.style.opacity = emExecucao ? '0.52' : '1';
-      b.style.cursor = emExecucao ? 'not-allowed' : 'pointer';
     }
   }
   async function aguardarPausaSeNecessario() {
@@ -1421,101 +995,6 @@
     return nomes.slice(0, 12);
   }
 
-  async function percorrerItensFila({ modo, seletor, tituloInicio, tituloBarra, verboPassado, processarItem, aoErro }) {
-    if (rodando) return;
-    rodando = true;
-    pausado = false;
-    modoAtual = modo;
-    ativarWakeLock();
-    atualizarBotoesEstado(true, tituloBarra || tituloInicio);
-    const processados = new Set();
-    let alterados = 0;
-    let pulados = 0;
-    let scrollContainer = null;
-    let tentativasFim = 0;
-    try {
-      const iniciais = [...document.querySelectorAll(seletor)];
-      if (iniciais.length === 0) {
-        log('⚠️ Nenhum cliente encontrado na fila.');
-        return;
-      }
-      scrollContainer = encontrarContainerScroll(iniciais[0]);
-      if (scrollContainer && scrollContainer.scrollTop > 0) {
-        scrollContainer.scrollTop = 0;
-        await sleep(350);
-      }
-      cntEl.textContent = '0';
-      log(`🚀 ${tituloInicio} (${iniciais.length} visíveis)...`);
-      while (rodando) {
-        if (!(await aguardarPausaSeNecessario())) break;
-        const lista = [...document.querySelectorAll(seletor)];
-        let alvo = null;
-        let chave = '';
-        for (let i = 0; i < lista.length; i++) {
-          const item = lista[i];
-          const k = obterChaveElemento(item, i);
-          if (!processados.has(k)) {
-            alvo = item;
-            chave = k;
-            break;
-          }
-        }
-        if (!alvo) {
-          tentativasFim++;
-          if (tentativasFim <= 4) {
-            scrollContainer = scrollContainer || encontrarContainerScroll(lista[lista.length - 1]);
-            log(`⏳ Rolando fila para carregar mais atendimentos (${tentativasFim}/4)...`);
-            if (scrollContainer) {
-              scrollContainer.scrollTop += Math.max(300, Math.floor(scrollContainer.clientHeight * 0.8));
-              scrollContainer.dispatchEvent(new Event('scroll', { bubbles: true }));
-            }
-            window.dispatchEvent(new Event('scroll'));
-            await sleep(1400);
-            continue;
-          }
-          break;
-        }
-        tentativasFim = 0;
-        processados.add(chave);
-        try {
-          const res = await processarItem(alvo, chave, alterados, scrollContainer);
-          if (res === 'alterado') {
-            alterados++;
-            cntEl.textContent = alterados;
-          } else if (res === 'pulado') {
-            pulados++;
-          }
-        } catch (err) {
-          log(`❌ Erro (${chave}): ${err.message}`);
-          if (aoErro) await aoErro(alvo, err);
-          await fecharAvisosPendentes();
-        }
-        await sleep(350);
-      }
-      log(`🏁 Finalizado: ${alterados} ${verboPassado}(s)${pulados ? `, ${pulados} pulado(s)` : ''}.`);
-    } finally {
-      rodando = false;
-      pausado = false;
-      modoAtual = null;
-      await liberarWakeLock();
-      atualizarBotoesEstado(false);
-      log("⏹ Automação parada.");
-    }
-  }
-
-  async function rolarFila() {
-    const sc = obterScrollContainerGeral();
-    if (sc) {
-      sc.scrollTop += Math.max(300, Math.floor(sc.clientHeight * 0.8));
-      sc.dispatchEvent(new Event('scroll', { bubbles: true }));
-    }
-    const articles = document.querySelectorAll('article.chat-list-item');
-    if (articles.length > 0) {
-      articles[articles.length - 1].scrollIntoView?.({ block: 'end', behavior: 'instant' });
-    }
-    window.dispatchEvent(new Event('scroll'));
-  }
-
   async function processarMoverTicket(alvo, pasta, alvoNorm, labelId, totalAtual) {
     const wrap = alvo.closest('.ticket-menu') || alvo.parentElement;
     const card = alvo.closest('article.chat-list-item, [class*="chat-list-item"], [class*="ticket"]') || wrap;
@@ -1601,7 +1080,6 @@
     }
 
     saveRecentFolder(pasta);
-    renderFolderChips();
     log(`✅ Ticket ${labelId} movido para "${pasta}"! (${totalAtual + 1})`);
 
     // 6. Aguarda o Blip processar a mudança de pasta
@@ -1613,285 +1091,6 @@
     return 'alterado';
   }
 
-  async function executarMoverParaPastaTodos(nomePasta) {
-    const pasta = (nomePasta || folderEl.value).trim();
-    if (!pasta) {
-      log('⚠️ Digite o nome exato da pasta antes de iniciar.');
-      folderEl.focus();
-      return;
-    }
-    CONFIG.pastaDestino = pasta;
-    const alvoNorm = normalizarTexto(pasta);
-
-    if (rodando) return;
-    rodando = true;
-    pausado = false;
-    modoAtual = 'pasta';
-    ativarWakeLock();
-    atualizarBotoesEstado(true, `Movendo → ${pasta}`);
-
-    cntEl.textContent = '0';
-    let alterados = 0;
-    let pulados = 0;
-    const falhasSeguidas = new Map();
-    let tentativasSemTickets = 0;
-
-    log(`🚀 Iniciando movimentação para a pasta "${pasta}"...`);
-
-    try {
-      while (rodando) {
-        if (!(await aguardarPausaSeNecessario())) break;
-
-        const lista = [...document.querySelectorAll('button.ticket-info-options')];
-        if (lista.length === 0) {
-          tentativasSemTickets++;
-          if (tentativasSemTickets <= 4) {
-            log(`⏳ Carregando fila (${tentativasSemTickets}/4)...`);
-            await rolarFila();
-            await sleep(1200);
-            continue;
-          }
-          log('🏁 Fila vazia ou nenhum cliente restante.');
-          break;
-        }
-
-        // Pega o primeiro da fila que não esteja em loop de falha
-        let alvo = null;
-        let chave = '';
-        for (let i = 0; i < lista.length; i++) {
-          const item = lista[i];
-          const k = obterChaveElemento(item, i);
-          const falhas = falhasSeguidas.get(k) || 0;
-          if (falhas < 2) {
-            alvo = item;
-            chave = k;
-            break;
-          }
-        }
-
-        if (!alvo) {
-          tentativasSemTickets++;
-          if (tentativasSemTickets <= 3) {
-            log(`⏳ Tentando carregar novos tickets além dos pulados (${tentativasSemTickets}/3)...`);
-            await rolarFila();
-            await sleep(1400);
-            continue;
-          }
-          log('🏁 Todos os tickets restantes foram processados ou pulados.');
-          break;
-        }
-
-        tentativasSemTickets = 0;
-        const labelId = alvo.id ? `#${alvo.id.replace('menu-', '')}` : chave;
-
-        try {
-          const res = await processarMoverTicket(alvo, pasta, alvoNorm, labelId, alterados);
-          if (res === 'alterado') {
-            alterados++;
-            cntEl.textContent = alterados;
-            falhasSeguidas.delete(chave);
-          } else {
-            pulados++;
-            const f = falhasSeguidas.get(chave) || 0;
-            falhasSeguidas.set(chave, f + 1);
-          }
-        } catch (err) {
-          log(`❌ Erro no ticket ${labelId}: ${err.message}`);
-          pulados++;
-          const f = falhasSeguidas.get(chave) || 0;
-          falhasSeguidas.set(chave, f + 1);
-          await fecharAvisosPendentes();
-        }
-
-        // Aguarda a fila atualizar (o ticket sair e o próximo tomar o lugar no topo!)
-        await sleep(CONFIG.delayAcoes);
-      }
-
-      log(`🏁 Finalizado: ${alterados} movido(s) para "${pasta}"${pulados ? `, ${pulados} pulado(s)` : ''}.`);
-    } finally {
-      rodando = false;
-      pausado = false;
-      modoAtual = null;
-      await liberarWakeLock();
-      atualizarBotoesEstado(false);
-      log("⏹ Automação parada.");
-    }
-  }
-
-  async function executarModoEsperaTodos(acao) {
-    const ehPausar = acao === 'pausar';
-    const targetTestId = ehPausar ? 'option-setStandbyMode' : 'option-unsetStandbyMode';
-    const oppositeTestId = ehPausar ? 'option-unsetStandbyMode' : 'option-setStandbyMode';
-    const verbo = ehPausar ? 'Pausando' : 'Despausando';
-    const verboPassado = ehPausar ? 'pausado' : 'despausado';
-    await percorrerItensFila({
-      modo: acao,
-      seletor: 'button.ticket-info-options',
-      tituloInicio: `${verbo} todos os clientes`,
-      tituloBarra: `${verbo} fila`,
-      verboPassado,
-      processarItem: async (alvo, chave, totalAtual, scrollContainer) => {
-        const wrap = alvo.closest('.ticket-menu') || alvo.parentElement;
-        const card = alvo.closest('article.chat-list-item, [class*="chat-list-item"], [class*="ticket"]') || wrap;
-        const labelId = alvo.id ? `#${alvo.id.replace('menu-', '')}` : chave;
-        rolarCardNoContainer(card, scrollContainer);
-        card?.dispatchEvent(new MouseEvent('mouseenter', { bubbles: true }));
-        card?.dispatchEvent(new MouseEvent('mouseover', { bubbles: true }));
-        wrap?.dispatchEvent(new MouseEvent('mouseenter', { bubbles: true }));
-        await sleep(120);
-        clickUnico(alvo);
-        const acaoEncontrada = await waitFor(() => {
-          const t = encontrarOpcaoMenu(wrap, targetTestId);
-          if (t) return { tipo: 'alvo', el: t };
-          const o = encontrarOpcaoMenu(wrap, oppositeTestId);
-          if (o) return { tipo: 'oposto', el: o };
-          return null;
-        }, 3500, 100);
-        if (!(await aguardarPausaSeNecessario())) {
-          await fecharMenuTicket(wrap, alvo);
-          return 'parado';
-        }
-        if (acaoEncontrada.tipo === 'alvo') {
-          const innerBtn = acaoEncontrada.el.shadowRoot?.querySelector('button.menuaction__button, button') || acaoEncontrada.el;
-          await sleep(150);
-          clickUnico(innerBtn);
-          log(`✅ Ticket ${labelId} ${verboPassado}! (${totalAtual + 1})`);
-          await sleep(550);
-          await fecharAvisosPendentes();
-          return 'alterado';
-        }
-        log(`⏭️ Ticket ${labelId} já estava ${verboPassado}.`);
-        await fecharMenuTicket(wrap, alvo);
-        return 'pulado';
-      },
-      aoErro: async (alvo) => {
-        const wrap = alvo.closest('.ticket-menu') || alvo.parentElement;
-        await fecharMenuTicket(wrap, alvo);
-      }
-    });
-  }
-
-  async function executarEscreverParaTodos(texto) {
-    if (rodando) return;
-    const mensagem = (texto || msgEl.value).trim();
-    if (!mensagem) {
-      log('⚠️ Digite uma mensagem antes de iniciar.');
-      msgEl.focus();
-      return;
-    }
-    CONFIG.mensagem = mensagem;
-    await percorrerItensFila({
-      modo: 'escrever',
-      seletor: 'article.chat-list-item',
-      tituloInicio: 'Escrevendo para todos os clientes',
-      tituloBarra: 'Enviando mensagem...',
-      verboPassado: 'enviado',
-      processarItem: async (card, chave, totalAtual, scrollContainer) => {
-        const nome = card.getAttribute('aria-label') || chave;
-        rolarCardNoContainer(card, scrollContainer);
-        await sleep(120);
-        clickUnico(card);
-        log(`👤 [${totalAtual + 1}] ${nome}`);
-        await sleep(Math.max(800, CONFIG.delayTrocaTicket));
-        if (!(await aguardarPausaSeNecessario())) return 'parado';
-        await enviarTextoNoChat(mensagem);
-        return 'alterado';
-      }
-    });
-  }
-
-  async function loop() {
-    rodando = true;
-    pausado = false;
-    modoAtual = 'atender';
-    atualizarBotoesEstado(true, 'Atendendo e finalizando...');
-    while (rodando) {
-      if (!(await aguardarPausaSeNecessario())) break;
-      log(`━━━ Ticket #${tickets + 1} ━━━`);
-      try {
-        await passo1_mensagem();
-        if (!rodando) break;
-        await passo2_tag();
-        if (!rodando) break;
-        await passo3_finalizar();
-        if (!rodando) break;
-        await passo4_confirmarModal();
-        if (!rodando) break;
-        tickets++;
-        cntEl.textContent = tickets;
-        log(`🎉 Ticket #${tickets} finalizado com sucesso!`);
-        const temMais = await passo5_proximoFila();
-        if (!temMais) break;
-      } catch (err) {
-        log(`❌ Erro: ${err.message}`);
-        await fecharAvisosPendentes();
-        log("⏳ Aguardando 5s para tentar novamente...");
-        await sleep(5000);
-      }
-    }
-    rodando = false;
-    pausado = false;
-    modoAtual = null;
-    await liberarWakeLock();
-    atualizarBotoesEstado(false);
-    log("⏹ Automação parada.");
-  }
-
-  function obterCamposPainel(exigirTag = true) {
-    const mensagem = msgEl.value.trim();
-    if (!mensagem) {
-      log("⚠️ Digite uma mensagem na caixa antes de iniciar.");
-      msgEl.focus();
-      return null;
-    }
-    CONFIG.mensagem = mensagem;
-    let tag = tagEl.value.trim();
-    if (exigirTag) {
-      if (!tag) {
-        log("⚠️ Digite o nome da tag na caixa antes de iniciar.");
-        tagEl.focus();
-        return null;
-      }
-      CONFIG.tagBusca = tag;
-    }
-    return { mensagem, tag };
-  }
-
-  btnModeEnviar.onclick = () => definirModoChave('enviar');
-  btnModeFinalizar.onclick = () => definirModoChave('finalizar');
-  btnFillDefault.onclick = () => {
-    if (rodando) return;
-    msgEl.value = MENSAGEM_PADRAO;
-    CONFIG.mensagem = MENSAGEM_PADRAO;
-    msgEl.focus();
-    log("📋 Mensagem padrão preenchida.");
-  };
-
-  btnMoveFolder.onclick = () => {
-    if (rodando || autoBloqueiaOutras()) return;
-    executarMoverParaPastaTodos(folderEl.value);
-  };
-
-  btnPlay.onclick = () => {
-    if (rodando || autoBloqueiaOutras()) return;
-    const ehFinalizar = modoChave === 'finalizar';
-    const campos = obterCamposPainel(ehFinalizar);
-    if (!campos) return;
-    if (ehFinalizar) {
-      const ok = confirm(
-        `⚠️ MODO ENVIAR + FINALIZAR\n\nIsso vai enviar a mensagem, aplicar a tag "${campos.tag}" e FINALIZAR todos os tickets da fila.\n\nDeseja iniciar agora?`
-      );
-      if (!ok) {
-        log("⚠️ Ação cancelada pelo usuário.");
-        return;
-      }
-      ativarWakeLock();
-      log("▶ Iniciando envio + finalização...");
-      loop();
-    } else {
-      executarEscreverParaTodos(campos.mensagem);
-    }
-  };
 
   function alternarPausa() {
     if (!rodando) return;
@@ -1948,77 +1147,5 @@
     const inner = host.shadowRoot?.querySelector('button') || host;
     const isInnerDisabled = inner.hasAttribute('disabled') || inner.getAttribute('aria-disabled') === 'true';
     return { host, inner, disabled: isHostDisabled || isInnerDisabled };
-  }
-
-  async function executarAtendimentoAutomatico() {
-    if (rodando) return;
-    rodando = true;
-    pausado = false;
-    modoAtual = 'claim';
-    ativarWakeLock();
-    atualizarBotoesEstado(true, 'Atendendo fila (0.5s)...');
-    cntEl.textContent = '0';
-    let solicitados = 0;
-
-    const countInicial = obterContagemFila();
-    log(`🚀 Iniciando atendimento automático a cada 0.5s (Fila atual: ${countInicial !== null ? countInicial : 'lendo...'})`);
-
-    try {
-      while (rodando) {
-        if (!(await aguardarPausaSeNecessario())) break;
-
-        const countAtual = obterContagemFila();
-        atualizarBadgeFila();
-
-        if (countAtual !== null && countAtual <= 0) {
-          log('🎉 A contagem da fila chegou a 0! Finalizado.');
-          break;
-        }
-
-        const btnInfo = obterBotaoAtender();
-        if (!btnInfo || !btnInfo.host) {
-          log('⚠️ Botão "Atender" (#claim-ticket-button) não encontrado na tela.');
-          break;
-        }
-
-        if (btnInfo.disabled) {
-          if (countAtual !== null && countAtual <= 0) {
-            log('🎉 Fila zerada!');
-            break;
-          }
-          await sleep(250);
-          continue;
-        }
-
-        const clickTarget = btnInfo.inner || btnInfo.host;
-        dispararCliqueReal(clickTarget);
-        if (btnInfo.host !== clickTarget) {
-          dispararCliqueReal(btnInfo.host);
-        }
-
-        solicitados++;
-        cntEl.textContent = solicitados;
-        const countRest = obterContagemFila();
-        const infoRest = countRest !== null ? ` | Fila: ${countRest}` : '';
-        log(`📥 [${solicitados}] Atender clicado${infoRest}`);
-
-        if (countRest !== null && countRest <= 0) {
-          log('🎉 A contagem da fila chegou a 0! Finalizado.');
-          break;
-        }
-
-        await sleep(500);
-      }
-    } catch (err) {
-      log(`❌ Erro no atendimento automático: ${err.message}`);
-    } finally {
-      rodando = false;
-      pausado = false;
-      modoAtual = null;
-      await liberarWakeLock();
-      atualizarBotoesEstado(false);
-      atualizarBadgeFila();
-      log(`🏁 Atendimento automático finalizado. Total solicitados: ${solicitados}.`);
-    }
   }
 

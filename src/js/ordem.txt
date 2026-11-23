@@ -1,4 +1,15 @@
 01-base.js
-02-piloto.js
+puro/velocidade.js
+puro/pausas.js
 03-auto.js
-04-transferir-e-fechar.js
+04-transferir.js
+puro/validar-fluxo.js
+puro/validar-campos.js
+puro/motor.js
+05-fluxo.js
+puro/fluxos-salvos.js
+puro/migracao.js
+puro/passos-tela.js
+puro/stepper.js
+06-tela.js
+99-fechar.js
