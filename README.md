@@ -2,6 +2,11 @@
 
 Página de instalação do bookmarklet **rod bot** (`rodbot-final.html`) para o Blip Desk.
 
+O painel tem duas abas: **🧩 Montar** (o usuário monta o próprio fluxo com Atender, Enviar, Espera, Mover e Transferir,
+para quem aguarda, para quem vai cair ou para os dois) e **📊 Acompanhar** (passo a passo, contadores e log).
+**Antes de liberar, veja `docs/plano/entrega-piloto.md`**: o que foi testado, o que não foi testado no Blip real e o
+checklist com tickets de teste.
+
 ## Como editar
 
 `rodbot-final.html` é **gerado**. **Nunca edite o HTML nem o `javascript:` à mão.**
@@ -19,4 +24,4 @@ Página de instalação do bookmarklet **rod bot** (`rodbot-final.html`) para o 
 | `npm run verificar` | `npm test` + `npm run e2e` |
 | `npm run comparar-bundle [ref]` | prova que um commit só moveu linhas (bundle igual ao de `ref`, padrão `HEAD`) |
 
-Plano e spec do novo Piloto: `docs/plano/`.
+Spec, plano, nota de entrega e tabela de pausas: `docs/plano/`.

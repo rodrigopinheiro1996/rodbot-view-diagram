@@ -610,3 +610,6 @@ sem revisão prévia e listada no relatório final.
   fila"; Transferir pelo nome exato; ordem inválida (modal, nada executa) e campo vazio (Iniciar não roda); velocidade
   2.0 × 1.0 escolhida nos Ajustes (mais rápido, nenhuma pausa abaixo de 50%); ⭐ Auto clássico com a mensagem migrada;
   tema e último fluxo salvo mantidos ao reabrir.
+- Tarefa 24: feita. `docs/plano/entrega-piloto.md` (o que mudou, o que foi testado, o que **não** foi testado no Blip real,
+  checklist de 14 passos com tickets de teste, decisões fora da spec, pendências, como voltar atrás e a tabela de pausas).
+  README aponta para ela. **Plano concluído (24/24).**
