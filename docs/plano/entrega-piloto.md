@@ -53,8 +53,10 @@ Nada abaixo foi verificado no site. É o que o checklist confere.
 - Todos os tempos foram medidos na página falsa, que responde na hora. No Blip real a rede é mais lenta. As esperas de
   tela continuam as de hoje, mas a **velocidade 2.0** corta pela metade o ritmo entre tickets (ex.: 1200 → 600 ms),
   inclusive o `delayAcoes` que o código comenta como "aguarda a fila atualizar" ao mover.
-- No ⏳, antes de enviar, o bot **abre o menu de cada ticket** para saber se está em espera (≈ 1 s a mais por ticket).
-  Isso vale até o BM responder a pergunta do card pausado (seção 6).
+- Antes de enviar, o bot abre o chat direto (como o Auto antigo). O menu ⋮ só é aberto para saber se o ticket está em
+  espera quando o campo de mensagem não fica disponível; sem campo nem sinal de desabilitado, isso custa até 8 s
+  (`AUTO_T.campo`) por ticket pausado. Corrigido em 23/11/2026: abrir o menu antes de enviar travava o envio no Blip
+  real (o menu não fechava).
 
 **Partes imitadas por dedução do código, sem conferir no site** (marcadas assim em `blip-falso.js`)
 - Estrutura do submenu **Mover para** (`.folder-submenu-container > .custom-submenu-item > .sub-menu`).

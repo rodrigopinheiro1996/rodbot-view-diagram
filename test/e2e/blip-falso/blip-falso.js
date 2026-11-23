@@ -6,6 +6,10 @@
  *   CONFIRMADO pelo BM: o ticket puxado pelo Atender entra no TOPO da lista.
  *   INFERIDO do código (não conferido no site): estrutura do submenu de pastas, modal de finalizar, tags, como o
  *     Atender reage a cliques repetidos, onde entra um chat novo que cai (fim da lista), aparência do ticket pausado.
+ *   OBSERVADO pelo BM em imagens do Blip real (23/11/2026), configurável: menuNaoFecha. Os menus ⋮ que o bot abre
+ *     sem escolher opção continuam abertos (vários ao mesmo tempo); só escolher uma opção fecha. O porquê (estrutura
+ *     do menu) ainda não foi conferido: aqui nada que o bot faz para fechar (open = false, Escape, novo clique no ⋮)
+ *     tem efeito.
  *   SUPOSIÇÕES da spec (§11), configuráveis: S1 mover tira da lista; S2 pausado pode ser movido/transferido;
  *     S3 pausado não recebe mensagem (campo de texto desabilitado).
  *
@@ -28,7 +32,7 @@
         if (b) b.disabled = valor !== null;
       }
       get open() { return this.hasAttribute('open'); }
-      set open(v) { this.toggleAttribute('open', !!v); this.closest('.ticket-menu')?.classList.toggle('visible', !!v); }
+      set open(v) { if (!v && this.__travado) return; this.toggleAttribute('open', !!v); this.closest('.ticket-menu')?.classList.toggle('visible', !!v); }
       get checked() { return !!this.shadowRoot.querySelector('input[type="radio"]')?.checked; }
       set checked(v) { const i = this.shadowRoot.querySelector('input[type="radio"]'); if (i) i.checked = !!v; }
     });
@@ -57,6 +61,7 @@
     atendentes: ['Atendente Fictício', 'Atendente Fictício Dois', 'Outra Pessoa'],
     semBotaoAtender: false,
     cooldownAtenderMs: 150,
+    menuNaoFecha: false,
   };
   let cfg, tickets, filaRestante, proxId, abertoId, ultimoAtender, eventos;
 
@@ -96,6 +101,7 @@
     botao.addEventListener('click', (e) => {
       e.stopPropagation();
       const abrir = !menu.open;
+      if (cfg.menuNaoFecha) { if (abrir) abrirMenu(t, menu); return; } // não fecha nem os outros
       fecharMenus();
       if (abrir) abrirMenu(t, menu);
     });
@@ -120,6 +126,7 @@
     optMover.hidden = t.pausado && !cfg.S2;
     optMover.querySelector('.folder-submenu-container').classList.remove('aberto');
     menu.open = true;
+    menu.__travado = !!cfg.menuNaoFecha;
   }
 
   function montarSubmenu(t, sub, menu) {
@@ -142,7 +149,7 @@
   }
 
   function fecharMenus() {
-    document.querySelectorAll('bds-menu[open]').forEach((m) => { m.open = false; });
+    document.querySelectorAll('bds-menu[open]').forEach((m) => { m.__travado = false; m.open = false; });
   }
 
   function definirPausa(t, pausado) {
@@ -359,7 +366,7 @@
     renderizar();
   }
 
-  document.addEventListener('keydown', (e) => { if (e.key === 'Escape') fecharMenus(); });
+  document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && !cfg.menuNaoFecha) fecharMenus(); });
   document.addEventListener('click', (e) => {
     if (e.target.closest?.('#claim-ticket-button')) atender();
   });

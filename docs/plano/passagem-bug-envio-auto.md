@@ -51,10 +51,11 @@ Playwright e Chromium já estão na máquina. Em script ESM, carregue com `creat
    (`memoria24h.tem` = `fluxo` ou `envio` no registro), **grava o id nas 24 h antes do 1º passo** e chama
    `motorPassosNoChat` (um chat por vez; um passo só começa se o anterior deu ok).
 5. `src/js/05-fluxo.js` → `fluxoEnviar(id, op)`:
-   1. `fluxoLerEspera(id)` **abre o menu ⋮ do ticket** para ver se está em espera (se estiver: `pulado`, e o chat não
-      segue para os outros passos). É código novo, nunca rodou no Blip.
-   2. Clica no card e espera `autoIndicioChatAtivo(id)` (cabeçalho "Ticket: #id").
-   3. `#text-input` habilitado; recusa se houver rascunho.
+   1. Clica no card e espera `autoIndicioChatAtivo(id)` (cabeçalho "Ticket: #id").
+   2. `#text-input` habilitado; recusa se houver rascunho. Só se o campo não ficar disponível, `fluxoLerEspera(id)`
+      abre o menu ⋮ para ver se está em espera (se estiver: `pulado`, e o chat não segue para os outros passos).
+      Corrigido em 23/11/2026: antes o menu era aberto em todo ticket e, no Blip real, não fechava.
+   3. (o antigo passo 1 foi removido; ver item 2)
    4. `preencherCampoMensagem` → `dispararEnvioEnter` → `autoConfirmarEnvio` (campo vazio + texto novo na conversa,
       prazo `AUTO_T.confirmarEnvio` 8 s).
    5. Em "Enviar + Finalizar": `passo2_tag(tag)`, `passo3_finalizar`, `passo4_confirmarModal`.

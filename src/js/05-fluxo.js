@@ -19,7 +19,12 @@
     wrap?.dispatchEvent(new MouseEvent('mouseenter', { bubbles: true }));
     await sleep(120);
     if (!menuEstaAberto(wrap)) clickUnico(alvo);
+    // Primeiro o menu deste ticket: no Blip real menus de outros tickets podem ter ficado abertos, e a busca geral de
+    // encontrarOpcaoMenu acharia a opção de um deles (um ticket pausado faria este parecer pausado).
+    const doTicket = testId => isAcaoMenuVisivel(wrap?.querySelector(`bds-menu-action[data-testid="${testId}"]`));
     const estado = await waitFor(() => {
+      if (doTicket(AUTO_SEL.opcaoDespausar)) return 'pausado';
+      if (doTicket(AUTO_SEL.opcaoPausar)) return 'ativo';
       if (encontrarOpcaoMenu(wrap, AUTO_SEL.opcaoDespausar)) return 'pausado';
       if (encontrarOpcaoMenu(wrap, AUTO_SEL.opcaoPausar)) return 'ativo';
       return null;
@@ -68,11 +73,11 @@
 
   // Envia (e, em "Enviar + Finalizar", aplica a tag e finaliza) no chat do ticket `id`.
   // Só devolve ok depois de CONFIRMAR o envio na interface (campo vazio + texto novo na conversa).
+  // Como o Auto antigo, abre o chat direto: o menu ⋮ só é aberto se o campo de mensagem não ficar disponível, para
+  // saber se o ticket está em espera (no Blip real o menu aberto antes de enviar não fechava e travava o envio).
   async function fluxoEnviar(id, op) {
     const msg = (op.mensagem || '').trim();
     if (!autoBotaoMenu(id)) return { ok: false, motivo: 'o ticket saiu da lista; nada enviado' };
-    const espera = await fluxoLerEspera(id);
-    if (espera === 'pausado') return { ok: true, pulado: true, nota: 'em espera: não recebe mensagem' };
     const card = autoCardDoTicket(autoBotaoMenu(id));
     if (!card) return { ok: false, motivo: 'card do ticket não encontrado; nada enviado' };
     if (autoTemRascunho(msg)) return { ok: false, motivo: 'há texto digitado no chat aberto; nada foi trocado' };
@@ -80,10 +85,16 @@
     if (autoIndicioChatAtivo(id) === null) clickUnico(card);
     const indicio = await waitFor(() => autoIndicioChatAtivo(id), AUTO_T.chatAtivo, 200).catch(() => null);
     if (!indicio) return { ok: false, motivo: 'não foi possível confirmar que o chat aberto é deste ticket; nada enviado' };
-    const input = await waitFor(() => {
+    const campoLivre = () => {
       const el = autoCampoTexto();
       return el && !el.disabled && isElementoVisivel(el) ? el : null;
-    }, AUTO_T.campo, 200).catch(() => null);
+    };
+    let input = await waitFor(() => campoLivre() || (autoCampoTexto()?.disabled ? 'bloqueado' : null), AUTO_T.campo, 200)
+      .catch(() => null);
+    if (input === 'bloqueado' || !input) {
+      if ((await fluxoLerEspera(id)) === 'pausado') return { ok: true, pulado: true, nota: 'em espera: não recebe mensagem' };
+      input = input === 'bloqueado' ? await waitFor(campoLivre, AUTO_T.campo, 200).catch(() => null) : null;
+    }
     if (!input) return { ok: false, motivo: 'campo de mensagem indisponível; nada enviado' };
     if (autoTemRascunho(msg)) return { ok: false, motivo: 'o chat do cliente tem um rascunho; o texto não foi alterado' };
 

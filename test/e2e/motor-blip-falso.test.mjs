@@ -102,6 +102,20 @@ test('👥 [E,P]: antigos (lote) e novos (vigia) recebem exatamente 1 mensagem c
   });
 });
 
+// Bug do Blip real (23/11/2026): o menu ⋮ aberto para ler "em espera" não fechava. O menu aberto de um ticket pausado
+// fazia os tickets ativos seguintes parecerem pausados, e ninguém recebia a mensagem.
+test('👥 [E] com menus que não fecham (Blip real): o pausado é pulado e os ativos recebem 1 mensagem', async () => {
+  await comMotor({ pausadosIniciais: [0], menuNaoFecha: true }, async (page) => {
+    const execucao = page.evaluate((f) => window.__rodBot.executarFluxo(f), fluxo('ambos', [E('Olá')]));
+    await page.waitForFunction(() => /Lote:/.test(document.querySelector('#ba-log').textContent), null, { timeout: 30000 });
+    await page.evaluate(() => window.__rodBot.parar());
+    await execucao;
+    const e = await estado(page);
+    assert.deepEqual(e.tickets.map((t) => t.mensagens.length), [0, 1, 1], await logDoPainel(page));
+    assert.match(await logDoPainel(page), /Lote: 2 enviados · 0 falhas/);
+  });
+});
+
 test('⏳ Transferir para "Atendente Fictício": os tickets saem da lista', async () => {
   await comMotor({}, async (page) => {
     const r = await rodar(page, fluxo('aguardando', [T]));
