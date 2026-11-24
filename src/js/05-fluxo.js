@@ -191,7 +191,7 @@
       await tTransferirTicket(id, nome, tNorm(nome), para === 'fila' ? 'fila' : 'atendente');
       return { ok: true };
     } catch (err) {
-      if (err instanceof TransfInterrompido) return { ok: false, motivo: err.message };
+      if (err instanceof TransfInterrompido || err instanceof TransfChatMudou) return { ok: false, motivo: err.message };
       // TransfSuspenso no Transferir antigo suspende a transferência em massa: aqui é falha geral do passo
       throw ErroGeral(err.message);
     }

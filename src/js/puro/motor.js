@@ -70,79 +70,93 @@ async function motorPassoEmLote(passo, indice, ctx) {
   if (passo.tipo === 'atender') {
     const r = await acoes.atender();
     tc.atendidos += (r && r.atendidos) || 0;
+    ctx.anteriores = null; // depois do Atender, o próximo passo trata todos da tela
     return false;
   }
-
-  const tickets = acoes.listarTickets() || [];
-  const comNumero = tickets.filter((t) => t.id);
-  const semNumero = tickets.length - comNumero.length;
-  if (tickets.length && !comNumero.length) {
-    throw ErroGeral('todos os ' + tickets.length + ' cards da tela estão sem número de ticket');
-  }
-  tc.semNumero = Math.max(tc.semNumero, semNumero);
 
   const feitosNestePasso = memoria.porPasso[indice];
   const pausando = passo.tipo === 'espera' && passo.modo === 'pausar';
   const despausando = passo.tipo === 'espera' && passo.modo === 'despausar';
+  // A lista do Blip só mostra parte dos tickets (os seguintes aparecem quando uns saem, ex.: ao finalizar).
+  // Por isso o passo relê a lista até uma leitura não trazer nenhum ticket que ele ainda não viu.
+  // Só trata os que o passo anterior viu (ctx.anteriores): um ticket que aparece no meio de [Enviar, Pausar] não é
+  // pausado sem ter recebido a mensagem; fica para o próximo ciclo (⏳) ou para a vigia (👥).
+  const vistos = new Set();
+  const permitidos = ctx.anteriores || null;
 
-  for (const t of comNumero) {
-    if (controle.parado() || !(await controle.aguardar())) return true;
-    if (feitosNestePasso.has(t.id)) continue;
-    if (ctx.memoria24h && ctx.memoria24h.tem(t.id) && !memoria.avisados.has(t.id)) {
-      memoria.avisados.add(t.id);
-      log('ℹ️ #' + t.id + ' tratado de novo (execução anterior).');
+  for (;;) {
+    const tickets = acoes.listarTickets() || [];
+    const comNumero = tickets.filter((t) => t.id);
+    const semNumero = tickets.length - comNumero.length;
+    if (tickets.length && !comNumero.length && !vistos.size) {
+      throw ErroGeral('todos os ' + tickets.length + ' cards da tela estão sem número de ticket');
     }
-    if (passo.tipo === 'enviar') {
-      if (memoria.enviados.has(t.id)) continue; // regra 9: ninguém recebe duas mensagens
-      if (t.pausado === true) {
-        log('⏭️ #' + t.id + ' em espera: não recebe mensagem.');
+    tc.semNumero = Math.max(tc.semNumero, semNumero);
+    const novos = comNumero.filter((t) => !vistos.has(t.id) && (!permitidos || permitidos.has(t.id)));
+    if (!novos.length) {
+      ctx.anteriores = vistos;
+      return false;
+    }
+
+    for (const t of novos) {
+      vistos.add(t.id);
+      if (controle.parado() || !(await controle.aguardar())) return true;
+      if (feitosNestePasso.has(t.id)) continue;
+      if (ctx.memoria24h && ctx.memoria24h.tem(t.id) && !memoria.avisados.has(t.id)) {
+        memoria.avisados.add(t.id);
+        log('ℹ️ #' + t.id + ' tratado de novo (execução anterior).');
+      }
+      if (passo.tipo === 'enviar') {
+        if (memoria.enviados.has(t.id)) continue; // regra 9: ninguém recebe duas mensagens
+        if (t.pausado === true) {
+          log('⏭️ #' + t.id + ' em espera: não recebe mensagem.');
+          feitosNestePasso.add(t.id);
+          continue;
+        }
+      }
+      if (pausando && t.pausado === true) {
+        log('⏭️ #' + t.id + ' já estava em espera.');
         feitosNestePasso.add(t.id);
         continue;
       }
-    }
-    if (pausando && t.pausado === true) {
-      log('⏭️ #' + t.id + ' já estava em espera.');
-      feitosNestePasso.add(t.id);
-      continue;
-    }
-    if (despausando && t.pausado === false) continue;
+      if (despausando && t.pausado === false) continue;
 
-    let r;
-    try {
+      let r;
+      try {
+        if (passo.tipo === 'enviar') {
+          r = await acoes.enviar(t.id, {
+            mensagem: passo.mensagem, modo: passo.modo, tag: passo.tag, abrirProximo,
+          });
+        } else if (pausando) r = await acoes.pausar(t.id);
+        else if (despausando) r = await acoes.despausar(t.id);
+        else if (passo.tipo === 'mover') r = await acoes.mover(t.id, passo.pasta);
+        else r = await acoes.transferir(t.id, ...destinoTransferir(passo));
+      } catch (err) {
+        if (err && err.geral) throw err;
+        r = { ok: false, motivo: (err && err.message) || String(err) };
+      }
+      feitosNestePasso.add(t.id); // não tenta de novo nesta execução (evita repetir uma ação de resultado incerto)
+
+      if (!r || !r.ok) {
+        tc.falhas++;
+        log('⚠️ #' + t.id + ': ' + ((r && r.motivo) || 'falhou') + '. Pulado.');
+        continue;
+      }
+      if (r.pulado || r.semEfeito) {
+        log('⏭️ #' + t.id + ': ' + (r.nota || 'pulado') + '.');
+        continue;
+      }
+      if (r.nota) log('ℹ️ #' + t.id + ': ' + r.nota + '.');
       if (passo.tipo === 'enviar') {
-        r = await acoes.enviar(t.id, {
-          mensagem: passo.mensagem, modo: passo.modo, tag: passo.tag, abrirProximo,
-        });
-      } else if (pausando) r = await acoes.pausar(t.id);
-      else if (despausando) r = await acoes.despausar(t.id);
-      else if (passo.tipo === 'mover') r = await acoes.mover(t.id, passo.pasta);
-      else r = await acoes.transferir(t.id, ...destinoTransferir(passo));
-    } catch (err) {
-      if (err && err.geral) throw err;
-      r = { ok: false, motivo: (err && err.message) || String(err) };
+        memoria.enviados.add(t.id);
+        tc.enviados++;
+        if (passo.modo === 'finalizar') tc.finalizados++;
+      } else if (pausando) tc.pausados++;
+      else if (despausando) tc.despausados++;
+      else if (passo.tipo === 'mover') tc.movidos++;
+      else tc.transferidos++;
     }
-    feitosNestePasso.add(t.id); // não tenta de novo nesta execução (evita repetir uma ação de resultado incerto)
-
-    if (!r || !r.ok) {
-      tc.falhas++;
-      log('⚠️ #' + t.id + ': ' + ((r && r.motivo) || 'falhou') + '. Pulado.');
-      continue;
-    }
-    if (r.pulado || r.semEfeito) {
-      log('⏭️ #' + t.id + ': ' + (r.nota || 'pulado') + '.');
-      continue;
-    }
-    if (r.nota) log('ℹ️ #' + t.id + ': ' + r.nota + '.');
-    if (passo.tipo === 'enviar') {
-      memoria.enviados.add(t.id);
-      tc.enviados++;
-      if (passo.modo === 'finalizar') tc.finalizados++;
-    } else if (pausando) tc.pausados++;
-    else if (despausando) tc.despausados++;
-    else if (passo.tipo === 'mover') tc.movidos++;
-    else tc.transferidos++;
   }
-  return false;
 }
 
 function motorContar(tc, passo, ok) {
@@ -337,7 +351,8 @@ async function motorPorChat(fluxo, deps, log) {
   try {
     if (fluxo.paraQuem === 'ambos') {
       const lote = motorContadores();
-      const ctxLote = { acoes, controle, log, memoria, tc: lote, abrirProximo: false, memoria24h: acoes.memoria24h };
+      // o lote é só dos que já aguardavam; os que caem durante o lote ficam para a vigia
+      const ctxLote = { acoes, controle, log, memoria, tc: lote, abrirProximo: false, memoria24h: acoes.memoria24h, anteriores: presentes };
       for (let i = 0; i < passos.length; i++) {
         if (controle.parado() || !(await controle.aguardar())) return fim('parado');
         ctx.passoAtual = i + 1;

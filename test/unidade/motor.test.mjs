@@ -6,7 +6,8 @@ import { carregarPuro } from '../util/carregar-puro.mjs';
 const m = carregarPuro('velocidade.js', 'validar-fluxo.js', 'validar-campos.js', 'motor.js');
 
 // ── Blip de mentira: tickets na tela, fila e registro de chamadas
-function criarBlip({ naTela = ['1', '2', '3'], pausados = [], fila = [0], semNumero = 0 } = {}) {
+// visiveis: como o Blip real, a lista só mostra os N primeiros tickets (os seguintes aparecem quando uns saem).
+function criarBlip({ naTela = ['1', '2', '3'], pausados = [], fila = [0], semNumero = 0, visiveis = Infinity } = {}) {
   let prox = 100;
   const b = {
     tela: naTela.map((id) => ({ id, pausado: pausados.includes(id) })),
@@ -30,7 +31,7 @@ function criarBlip({ naTela = ['1', '2', '3'], pausados = [], fila = [0], semNum
       b.filas[0] = 0;
       return { atendidos: n };
     },
-    listarTickets: () => [...b.tela.map((t) => ({ ...t })), ...cardsSemNumero()],
+    listarTickets: () => [...b.tela.slice(0, visiveis).map((t) => ({ ...t })), ...cardsSemNumero()],
     enviar: async (id, op) => {
       registrar('enviar', id, op.mensagem, op.modo, op.abrirProximo);
       if (falhaItem('enviar', id)) return { ok: false, motivo: falhaItem('enviar', id) };
@@ -358,4 +359,42 @@ test('⏳: "semEfeito" do adaptador (já estava no estado) não conta no resumo'
   blip.acoes.despausar = async (id) => (id === '2' ? { ok: true, semEfeito: true, nota: 'não estava em espera' } : { ok: true });
   const r = await m.executarFluxo(fluxo([D]), criarDeps(blip).deps);
   assert.equal(r.totais.despausados, 1);
+});
+
+// Bug do Blip real (24/11/2026): 322 atendidos, só 30 enviados e finalizados. A lista do Blip só mostra uma parte
+// dos tickets; o passo lia a lista uma vez e parava nos que estavam na tela.
+test('⏳ [EF] com a lista mostrando só 3 de 7: relê a lista e finaliza os 7', async () => {
+  const blip = criarBlip({ naTela: ['1', '2', '3', '4', '5', '6', '7'], visiveis: 3 });
+  const { deps, log } = criarDeps(blip);
+  const r = await m.executarFluxo(fluxo([EF]), deps);
+  assert.equal(r.status, 'concluido');
+  assert.equal(blip.chamadas.filter((c) => c[0] === 'enviar').length, 7);
+  assert.equal(blip.tela.length, 0);
+  assert.ok(log.includes('Ciclo #1: 7 enviados · 7 finalizados · 0 falhas'), log.join('\n'));
+});
+
+test('⏳ [E] só enviar com a lista mostrando 3 de 7: relê, não acha ninguém novo e termina (sem repetir)', async () => {
+  const blip = criarBlip({ naTela: ['1', '2', '3', '4', '5', '6', '7'], visiveis: 3 });
+  const r = await m.executarFluxo(fluxo([E()]), criarDeps(blip).deps);
+  assert.equal(r.status, 'concluido');
+  assert.deepEqual(blip.chamadas.filter((c) => c[0] === 'enviar').map((c) => c[1]), ['1', '2', '3']);
+});
+
+test('⏳ [EF] relendo a lista: ticket que falhou não é tentado de novo no mesmo passo', async () => {
+  const blip = criarBlip({ naTela: ['1', '2', '3', '4'], visiveis: 2 });
+  blip.falhas['enviar:1'] = 'campo indisponível';
+  const r = await m.executarFluxo(fluxo([EF]), criarDeps(blip).deps);
+  assert.equal(r.status, 'concluido');
+  assert.deepEqual(blip.chamadas.filter((c) => c[0] === 'enviar').map((c) => c[1]), ['1', '2', '3', '4']);
+});
+
+test('⏳ [E, P] relendo a lista: ticket que aparece durante o Pausar não é pausado sem ter recebido a mensagem', async () => {
+  const blip = criarBlip({ naTela: ['1', '2'] });
+  const pausarOriginal = blip.acoes.pausar;
+  blip.acoes.pausar = async (id) => {
+    if (id === '1') blip.tela.push({ id: '9', pausado: false }); // chega um ticket no meio do passo
+    return pausarOriginal(id);
+  };
+  await m.executarFluxo(fluxo([E(), P]), criarDeps(blip).deps);
+  assert.ok(!blip.chamadas.some((c) => c[0] === 'pausar' && c[1] === '9'), JSON.stringify(blip.chamadas));
 });

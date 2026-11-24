@@ -90,6 +90,8 @@ Faça em ordem e anote o resultado. **Use tickets e um atendente de teste**, nun
 | 8 | ⏳ `[Despausar]` com 2 tickets de teste pausados. | Os 2 saem da espera; o resumo mostra "2 despausados". | Código novo: mandar o log. |
 | 9 | ⏳ `[Enviar + Finalizar, tag de teste]` em 1 ticket. | Mensagem, tag aplicada e ticket finalizado. | Mandar o log. |
 | 10 | ⏳ `[Transferir → nome exato do atendente de teste]`. | O ticket sai da lista para esse atendente. Um nome parcial é recusado. | Mandar o log. |
+| 10c | ⏳ `[Atender, Enviar + Finalizar]` com mais de 30 na fila. | Todos os atendidos recebem a mensagem e são finalizados no mesmo ciclo (o passo relê a lista). | Mandar o log com a linha "Ciclo #1". |
+| 10d | Pendente: com mais de 30 tickets, contar `button.ticket-info-options[id^="menu-"]` com a lista no topo e no fim. | Mostra se o Blip só monta parte da lista. Se sim, "Só enviar"/Pausar precisam rolar a lista. | Mandar os dois números. |
 | 10b | ⏳ `[Transferir → 👥 Fila → nome exato de uma fila de teste]`. | O ticket sai da lista para essa fila. Nome errado (ex.: sem acento) para o fluxo e o log lista as filas do Blip. | Mandar o log. |
 | 11 | 🆕 `[Enviar, Pausar]` (ou ⭐ Auto clássico). Iniciar e fazer cair 1 chat de teste. | Só o chat novo recebe 1 mensagem e é pausado; "Novos chats" vai a 1. | Mandar o log e o Acompanhar. |
 | 12 | 👥 `[Enviar, Pausar]` com 1 ticket esperando; depois cair 1 chat de teste. | Os 2 recebem 1 mensagem cada (lote + vigia). | Mandar o log. |

@@ -166,6 +166,42 @@ test('⏳ Transferir para uma fila que não existe: para no 1º ticket, nada tra
   });
 });
 
+// Bug intermitente do Blip real (24/11/2026): "o atendimento aberto deixou de ser o #id (antes de confirmar)" parava
+// o fluxo. O cabeçalho do chat pode sumir por um instante (o bot confere de novo) ou o Blip pode abrir outro chat
+// (falha só desse ticket: cancela o modal e segue).
+test('⏳ Transferir para fila com o cabeçalho piscando ao escolher a fila: confere de novo e transfere os 3', async () => {
+  await comMotor({ cabecalhoAoEscolherFila: 'pisca' }, async (page) => {
+    const r = await rodar(page, fluxo('aguardando', [TF('Nível 2')]));
+    assert.equal(r.status, 'concluido', JSON.stringify(r));
+    assert.ok((await estado(page)).tickets.every((t) => t.status === 'transferido' && t.fila === 'Nível 2'));
+    assert.equal(r.totais.transferidos, 3);
+  });
+});
+
+test('⏳ Transferir para fila e o Blip abre outro chat: só esse ticket falha (modal cancelado) e o fluxo segue', async () => {
+  await comMotor({ cabecalhoAoEscolherFila: 'outro' }, async (page) => {
+    const r = await rodar(page, fluxo('aguardando', [TF('Nível 2')]));
+    assert.equal(r.status, 'concluido', JSON.stringify(r));
+    const e = await estado(page);
+    assert.equal(e.tickets.filter((t) => t.status === 'transferido').length, 2);
+    assert.equal(e.tickets[0].status, 'aberto', 'o 1º não foi transferido');
+    assert.equal(r.totais.falhas, 1);
+    assert.match(await logDoPainel(page), /deixou de ser o #3148001 \(antes de confirmar; o cabeçalho mostra #3148002\)/);
+  });
+});
+
+// Bug do Blip real (24/11/2026): 322 atendidos e só 30 finalizados, porque a lista só mostra parte dos tickets.
+test('⏳ [Enviar + Finalizar] com a lista mostrando só 3 de 6: finaliza os 6', async () => {
+  const naTela = [1, 2, 3, 4, 5, 6].map((n) => `Cliente Fictício ${n}`);
+  await comMotor({ naTela, visiveis: 3 }, async (page) => {
+    const r = await rodar(page, fluxo('aguardando', [{ tipo: 'enviar', modo: 'finalizar', mensagem: 'Tchau', tag: 'Resolvido' }]));
+    assert.equal(r.status, 'concluido', JSON.stringify(r));
+    const e = await estado(page);
+    assert.ok(e.tickets.every((t) => t.status === 'finalizado' && t.mensagens.length === 1), JSON.stringify(e.tickets.map((t) => t.status)));
+    assert.equal(r.totais.finalizados, 6);
+  });
+});
+
 test('falha geral: botão Atender ausente para o fluxo, passo em Falha e motivo no log', async () => {
   await comMotor({ semBotaoAtender: true, fila: 2 }, async (page) => {
     const r = await rodar(page, fluxo('aguardando', [A, E(), P]));

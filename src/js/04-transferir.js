@@ -34,6 +34,7 @@
   let painelFechado = false;
   class TransfInterrompido extends Error {}
   class TransfSuspenso extends Error {}
+  class TransfChatMudou extends Error {} // falha só deste ticket (o modal é cancelado; o fluxo segue)
 
   function tNorm(s) {
     return (s || '').replace(/\s+/g, ' ').trim().toLowerCase();
@@ -295,8 +296,13 @@
     tDestino = TRANSF_DESTINOS[destino] || TRANSF_DESTINOS.atendente;
     const ehFila = tDestino === TRANSF_DESTINOS.fila;
     let confirmado = false;
-    const garantirChat = etapa => {
-      if (autoIndicioChatAtivo(id) === null) throw new TransfSuspenso(`o atendimento aberto deixou de ser o #${id} (${etapa})`);
+    // O Blip pode redesenhar o chat por um instante (sem cabeçalho): confere de novo por até 3 s antes de desistir.
+    const garantirChat = async etapa => {
+      if (autoIndicioChatAtivo(id) !== null) return;
+      if (await tEsperar(() => autoIndicioChatAtivo(id), 3000)) return;
+      const nums = autoTicketsNoCabecalho();
+      const visto = nums ? `o cabeçalho mostra #${nums.join(', #')}` : 'cabeçalho do chat não encontrado';
+      throw new TransfChatMudou(`o atendimento aberto deixou de ser o #${id} (${etapa}; ${visto})`);
     };
     try {
       const card = autoCardDoTicket(autoBotaoMenu(id));
@@ -312,7 +318,7 @@
       const botao = await tEsperar(() => { const b = tBotaoTransferir(); return b && b.habilitado ? b : null; }, TRANSF_T.abrir);
       if (!botao) throw new TransfSuspenso('botão de transferência não encontrado ou desabilitado');
       await tAntesDeClicar();
-      garantirChat('antes de abrir a transferência');
+      await garantirChat('antes de abrir a transferência');
       tClicar(botao.inner);
 
       const radio = await tEsperar(tRadioDestino, TRANSF_T.modal);
@@ -361,7 +367,7 @@
 
       // Validação final, imediatamente antes da ÚNICA confirmação.
       await tAntesDeClicar();
-      garantirChat('antes de confirmar');
+      await garantirChat('antes de confirmar');
       const ticketModal2 = tTicketDoModal(tRadioDestino() || tConfirmar()?.host);
       if (ticketModal2 && ticketModal2 !== id) throw new TransfSuspenso(`o modal passou a ser do ticket #${ticketModal2}`);
       if (!tRadioMarcado(tRadioDestino())) throw new TransfSuspenso(`"${tDestino.rotulo}" deixou de estar marcado antes da confirmação`);

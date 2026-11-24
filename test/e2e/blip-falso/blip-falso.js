@@ -15,6 +15,10 @@
  *     e mostra bds-autocomplete#autocompleteTeam. As opções (bds-select-option no shadow do autocomplete) têm o nome
  *     só no TEXTO (sem aria-label); escolhida uma, as outras ganham o atributo `invisible`, o campo mostra o nome e
  *     "Transferir ticket" libera. Trocar para "Atendente" mostra #autocompleteAttendant (este último, INFERIDO).
+ *   OBSERVADO pelo BM (24/11/2026), causa não medida, configuráveis: `visiveis` (a lista só mostra os N primeiros
+ *     tickets; os seguintes aparecem quando uns saem; o contador mostra o total) e `cabecalhoAoEscolherFila`
+ *     ('pisca': o chat é redesenhado e por 1 s não há cabeçalho nem card marcado; 'outro': o Blip abre outro chat, uma vez) para o erro
+ *     intermitente "o atendimento aberto deixou de ser o #id" ao transferir para fila.
  *   SUPOSIÇÕES da spec (§11), configuráveis: S1 mover tira da lista; S2 pausado pode ser movido/transferido;
  *     S3 pausado não recebe mensagem (campo de texto desabilitado).
  *
@@ -74,8 +78,10 @@
     semBotaoAtender: false,
     cooldownAtenderMs: 150,
     menuComoBlip: false,
+    visiveis: Infinity,
+    cabecalhoAoEscolherFila: null,
   };
-  let cfg, tickets, filaRestante, proxId, abertoId, ultimoAtender, eventos;
+  let cfg, tickets, filaRestante, proxId, abertoId, ultimoAtender, eventos, cabecalhoMexido;
 
   const $ = (s, r = document) => r.querySelector(s);
   const lista = () => $('#lista-tickets');
@@ -171,7 +177,7 @@
 
   function renderizarLista() {
     const el = lista();
-    const visiveis = naLista();
+    const visiveis = naLista().slice(0, cfg.visiveis);
     const ids = new Set(visiveis.map((t) => t.id));
     for (const card of [...el.children]) if (!ids.has(card.dataset.id)) card.remove();
     visiveis.forEach((t, i) => {
@@ -180,7 +186,7 @@
       card.querySelector('.pausa-ind').textContent = t.pausado ? '⏸️ em espera' : '';
       card.setAttribute('aria-selected', String(t.id === abertoId));
     });
-    $('#ticket-filter-dropdown bds-chip-tag').shadowRoot.querySelector('bds-typo').textContent = String(visiveis.length);
+    $('#ticket-filter-dropdown bds-chip-tag').shadowRoot.querySelector('bds-typo').textContent = String(naLista().length);
     $('#lista-pastas').textContent = cfg.pastas
       .map((p) => `${p} (${tickets.filter((x) => x.pasta === p && x.status === 'aberto').length})`).join(' · ');
   }
@@ -301,6 +307,19 @@
   }
 
   // ───────────────────────── transferência (estrutura de TRANSF_SEL)
+  function mexerNoCabecalho(t) {
+    if (cfg.cabecalhoAoEscolherFila === 'pisca') {
+      // o chat é redesenhado: por 1 s não há cabeçalho nem card marcado; depois volta o mesmo chat
+      abertoId = null;
+      renderizar();
+      setTimeout(() => { if (t.status === 'aberto') { abertoId = t.id; renderizar(); } }, 1000);
+    } else if (cfg.cabecalhoAoEscolherFila === 'outro' && !cabecalhoMexido) {
+      cabecalhoMexido = true;
+      const outro = naLista().find((x) => x.id !== t.id);
+      if (outro) abrirChat(outro.id);
+    }
+  }
+
   function abrirTransferencia(t) {
     if ($('#modal-transf')) return;
     if (t.pausado && !cfg.S2) return;
@@ -344,6 +363,7 @@
       op.textContent = nome;
       op.shadowRoot.querySelector('div[role="button"]').dataset.value = JSON.stringify({ name: nome, agentsOnline: true });
       op.addEventListener('click', () => {
+        mexerNoCabecalho(t);
         inputFila.value = nome;
         caixaFila.querySelectorAll('bds-select-option').forEach((o) => o.toggleAttribute('invisible', o !== op));
         caixaFila.hidden = true;
@@ -408,6 +428,7 @@
     proxId = 3148001;
     abertoId = null;
     ultimoAtender = 0;
+    cabecalhoMexido = false;
     eventos = [];
     filaRestante = cfg.fila;
     lista().innerHTML = '';
